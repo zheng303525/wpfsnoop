@@ -557,7 +557,7 @@ namespace Snoop
 			{
 				// load the window placement details from the user settings.
 				WINDOWPLACEMENT wp = (WINDOWPLACEMENT)Properties.Settings.Default.SnoopUIWindowPlacement;
-				wp.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
+				wp.length = (uint)Marshal.SizeOf(typeof(WINDOWPLACEMENT));
 				wp.flags = 0;
 				wp.showCmd = (wp.showCmd == Win32.SW_SHOWMINIMIZED ? Win32.SW_SHOWNORMAL : wp.showCmd);
 				IntPtr hwnd = new WindowInteropHelper(this).Handle;

@@ -21,7 +21,7 @@ void Injector::Launch(System::IntPtr windowHandle, System::String^ assembly, Sys
 	System::String^ assemblyClassAndMethod = assembly + "$" + className + "$" + methodName;
 	pin_ptr<const wchar_t> acmLocal = PtrToStringChars(assemblyClassAndMethod);
 
-	HINSTANCE hinstDLL;	
+	HINSTANCE hinstDLL;
 
 	if (::GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR)&MessageHookProc, &hinstDLL))
 	{
@@ -43,7 +43,7 @@ void Injector::Launch(System::IntPtr windowHandle, System::String^ assembly, Sys
 				{
 					LogMessage("VirtualAllocEx successful", true);
 					::WriteProcessMemory(hProcess, acmRemote, acmLocal, buffLen, NULL);
-				
+
 					_messageHookHandle = ::SetWindowsHookEx(WH_CALLWNDPROC, &MessageHookProc, hinstDLL, threadID);
 
 					if (_messageHookHandle)
@@ -64,7 +64,7 @@ void Injector::Launch(System::IntPtr windowHandle, System::String^ assembly, Sys
 }
 
 void Injector::LogMessage(System::String^ message, bool append)
-{	            
+{
 	System::String ^ applicationDataPath = Environment::GetFolderPath(Environment::SpecialFolder::ApplicationData);
 	applicationDataPath += "\\Snoop";
 
@@ -75,19 +75,19 @@ void Injector::LogMessage(System::String^ message, bool append)
 
 	System::String ^ pathname = applicationDataPath + "\\SnoopLog.txt";
 
-	if (!append)    
-	{    
-		System::IO::File::Delete(pathname);        
+	if (!append)
+	{
+		System::IO::File::Delete(pathname);
 	}
 
 	System::IO::FileInfo ^ fi = gcnew System::IO::FileInfo(pathname);
-	            
-	System::IO::StreamWriter ^ sw = fi->AppendText();   
+
+	System::IO::StreamWriter ^ sw = fi->AppendText();
 	sw->WriteLine(System::DateTime::Now.ToString("MM/dd/yyyy HH:mm:ss") + " : " + message);
 	sw->Close();
 }
 
-__declspec(dllexport) 
+__declspec(dllexport)
 LRESULT __stdcall MessageHookProc(int nCode, WPARAM wparam, LPARAM lparam)
 {
 	if (nCode == HC_ACTION)

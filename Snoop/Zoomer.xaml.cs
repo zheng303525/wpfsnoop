@@ -4,15 +4,12 @@
 // All other rights reserved.
 
 using System;
-using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
@@ -21,6 +18,9 @@ using Snoop.Infrastructure;
 
 namespace Snoop
 {
+    /// <summary>
+    /// 放大界面
+    /// </summary>
 	public partial class Zoomer
 	{
 		static Zoomer()
@@ -132,12 +132,39 @@ namespace Snoop
 			}
 		}
 
+        /// <summary>
+        /// 重置命令
+        /// </summary>
 		public static readonly RoutedCommand ResetCommand;
+
+        /// <summary>
+        /// 放大命令
+        /// </summary>
 		public static readonly RoutedCommand ZoomInCommand;
+
+        /// <summary>
+        /// 缩小命令
+        /// </summary>
 		public static readonly RoutedCommand ZoomOutCommand;
+
+        /// <summary>
+        /// 向左平移命令
+        /// </summary>
 		public static readonly RoutedCommand PanLeftCommand;
+
+        /// <summary>
+        /// 向右平移命令
+        /// </summary>
 		public static readonly RoutedCommand PanRightCommand;
+
+        /// <summary>
+        /// 向上平移命令
+        /// </summary>
 		public static readonly RoutedCommand PanUpCommand;
+
+        /// <summary>
+        /// 向下平移命令
+        /// </summary>
 		public static readonly RoutedCommand PanDownCommand;
 		public static readonly RoutedCommand SwitchTo2DCommand;
 		public static readonly RoutedCommand SwitchTo3DCommand;
@@ -150,7 +177,7 @@ namespace Snoop
 			{
 				// load the window placement details from the user settings.
 				WINDOWPLACEMENT wp = (WINDOWPLACEMENT)Properties.Settings.Default.ZoomerWindowPlacement;
-				wp.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
+				wp.length = (uint)Marshal.SizeOf(typeof(WINDOWPLACEMENT));
 				wp.flags = 0;
 				wp.showCmd = (wp.showCmd == Win32.SW_SHOWMINIMIZED ? Win32.SW_SHOWNORMAL : wp.showCmd);
 				IntPtr hwnd = new WindowInteropHelper(this).Handle;
