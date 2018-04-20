@@ -28,19 +28,19 @@ namespace Snoop.Shell
             }
         }
 
-        private readonly Timer selectedTimer;
-        private string lastLocation;
+        private readonly Timer _selectedTimer;
+        private string _lastLocation;
 
         public VisualTreeProvider()
         {
-            selectedTimer = new Timer(OnSyncSelectedItem, null, Timeout.Infinite, Timeout.Infinite);
+            _selectedTimer = new Timer(OnSyncSelectedItem, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         private void OnSyncSelectedItem(object _)
         {
             // the PSDrive.CurrentLocation gets set, but i couldn't find a way to have it notify
             // so unfortunately we have to poll :(
-            if (this.PSDriveInfo.CurrentLocation != this.lastLocation)
+            if (this.PSDriveInfo.CurrentLocation != this._lastLocation)
             {
                 var item = GetTreeItem(this.PSDriveInfo.CurrentLocation);
 
@@ -56,7 +56,7 @@ namespace Snoop.Shell
                     this.PSDriveInfo.CurrentLocation = string.Empty;
                 }
 
-                this.lastLocation = this.PSDriveInfo.CurrentLocation;
+                this._lastLocation = this.PSDriveInfo.CurrentLocation;
             }
         }
 
@@ -77,7 +77,7 @@ namespace Snoop.Shell
 
             if (path.Equals("\\"))
             {
-                this.selectedTimer.Change(LocationChangeNotifyDelay, Timeout.Infinite);
+                this._selectedTimer.Change(LocationChangeNotifyDelay, Timeout.Infinite);
                 return Root;
             }
 
@@ -100,7 +100,7 @@ namespace Snoop.Shell
 
             if (count == parts.Length)
             {
-                this.selectedTimer.Change(LocationChangeNotifyDelay, Timeout.Infinite);
+                this._selectedTimer.Change(LocationChangeNotifyDelay, Timeout.Infinite);
                 return current;
             }
 
@@ -187,7 +187,7 @@ namespace Snoop.Shell
 
         public void Dispose()
         {
-            this.selectedTimer.Dispose();
+            this._selectedTimer.Dispose();
             GC.SuppressFinalize(this);
         }
     }

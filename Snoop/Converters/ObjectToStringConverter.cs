@@ -4,9 +4,6 @@
 // All other rights reserved.
 
 using System;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -14,7 +11,10 @@ using System.Windows.Input;
 
 namespace Snoop
 {
-	public class ObjectToStringConverter : IValueConverter
+    [ValueConversion(typeof(FrameworkElement), typeof(string))]
+    [ValueConversion(typeof(RoutedCommand), typeof(string))]
+    [ValueConversion(typeof(object), typeof(string))]
+    public class ObjectToStringConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{

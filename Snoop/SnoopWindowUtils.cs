@@ -3,9 +3,6 @@
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 using Snoop.Infrastructure;
 
@@ -13,6 +10,10 @@ namespace Snoop
 {
 	public static class SnoopWindowUtils
 	{
+        /// <summary>
+        /// 用于查找Owner，逻辑与<see cref="Zoomer.FindRoot"/>相似
+        /// </summary>
+        /// <returns></returns>
 		public static Window FindOwnerWindow()
 		{
 			Window ownerWindow = null;

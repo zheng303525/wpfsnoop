@@ -184,7 +184,9 @@
     <Compile Include="ApplicationTreeItem.cs" />
     <Compile Include="BringIntoViewBehavior.cs" />
     <Compile Include="Converters\ArgbToPartsConverter.cs" />
+    <Compile Include="Converters\DoubleToWhitenessConverter.cs" />
     <Compile Include="Converters\FilterTypeToIntConverter.cs" />
+    <Compile Include="Converters\IndentToMarginConverter.cs" />
     <Compile Include="Converters\IsPowerShellInstalledToVisibilityConverter.cs" />
     <Compile Include="Converters\CsvStringToArrayConverter.cs" />
     <Compile Include="Converters\IsSupportedRuntimeTypeConverter.cs" />
@@ -245,7 +247,7 @@
       <DependentUpon>TypeSelector.xaml</DependentUpon>
     </Compile>
     <Compile Include="NativeMethods.cs" />
-    <Compile Include="ObjectToStringConverter.cs" />
+    <Compile Include="Converters\ObjectToStringConverter.cs" />
     <Compile Include="PertinentPropertyFilter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Shell\ShellConstants.cs" />

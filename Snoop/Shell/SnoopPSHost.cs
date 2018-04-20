@@ -13,24 +13,26 @@ using System.Threading;
 
 namespace Snoop.Shell
 {
+    /// <summary>
+    /// ¶Ô<see cref="PSHost"/>µÄ·â×°
+    /// </summary>
     internal class SnoopPSHost : PSHost
     {
-        private readonly Guid id = Guid.NewGuid();
-        private readonly SnoopPSHostUserInterface ui;
-        private readonly PSObject privateData;
-        private readonly Hashtable privateHashtable;
+        private readonly Guid _id = Guid.NewGuid();
+        private readonly SnoopPSHostUserInterface _ui;
+        private readonly Hashtable _privateHashtable;
 
         public SnoopPSHost(Action<string> onOutput)
         {
-            this.ui = new SnoopPSHostUserInterface();
-            this.ui.OnDebug += onOutput;
-            this.ui.OnError += onOutput;
-            this.ui.OnVerbose += onOutput;
-            this.ui.OnWarning += onOutput;
-            this.ui.OnWrite += onOutput;
+            this._ui = new SnoopPSHostUserInterface();
+            this._ui.OnDebug += onOutput;
+            this._ui.OnError += onOutput;
+            this._ui.OnVerbose += onOutput;
+            this._ui.OnWarning += onOutput;
+            this._ui.OnWrite += onOutput;
 
-            this.privateHashtable = new Hashtable();
-            this.privateData = new PSObject(this.privateHashtable);
+            this._privateHashtable = new Hashtable();
+            this.PrivateData = new PSObject(this._privateHashtable);
         }
 
         public override void SetShouldExit(int exitCode)
@@ -65,17 +67,17 @@ namespace Snoop.Shell
 
         public override Guid InstanceId
         {
-            get { return this.id; }
+            get { return this._id; }
         }
 
         public override string Name
         {
-            get { return this.id.ToString(); }
+            get { return this._id.ToString(); }
         }
 
         public override PSHostUserInterface UI
         {
-            get { return this.ui; }
+            get { return this._ui; }
         }
 
         public override Version Version
@@ -83,15 +85,12 @@ namespace Snoop.Shell
             get { return Assembly.GetExecutingAssembly().GetName().Version; }
         }
 
-        public override PSObject PrivateData
-        {
-            get { return this.privateData; }
-        }
+        public override PSObject PrivateData { get; }
 
         public object this[string name]
         {
-            get { return this.privateHashtable[name]; }
-            set { this.privateHashtable[name] = value; }
+            get { return this._privateHashtable[name]; }
+            set { this._privateHashtable[name] = value; }
         }
     }
 }

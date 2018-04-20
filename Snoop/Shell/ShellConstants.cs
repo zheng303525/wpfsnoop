@@ -3,11 +3,13 @@
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
-using System;
 using Microsoft.Win32;
 
 namespace Snoop.Shell
 {
+    /// <summary>
+    /// PowerShell相关的常量
+    /// </summary>
     internal static class ShellConstants
     {
         /// <summary>
@@ -41,7 +43,7 @@ namespace Snoop.Shell
         public const string DriveName = "snoop";
 
         /// <summary>
-        /// Gets the key for storing an <see cref="Action{T}"/> of type <see cref="VisualTreeItem"/>.
+        /// Gets the key for storing an <see cref="System.Action{T}"/> of type <see cref="VisualTreeItem"/>.
         /// </summary>
         public const string LocationChangedActionKey = "lca_key";
 

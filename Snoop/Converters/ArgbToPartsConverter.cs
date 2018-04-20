@@ -4,9 +4,6 @@
 // All other rights reserved.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Data;
 
@@ -17,6 +14,7 @@ namespace Snoop.Converters
 		public static readonly ArgbToPartsConverter Default = new ArgbToPartsConverter();
 
 		#region IValueConverter Members
+
 		public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
 		{
 			// value (string)	ARGB text (i.e. #FF102030)
@@ -39,10 +37,12 @@ namespace Snoop.Converters
 			string ret = val.Substring((part*2) + 1, 2);
 			return ret;
 		}
+
 		public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
 		{
 			throw new NotImplementedException();
 		}
+
 		#endregion
 	}
 }

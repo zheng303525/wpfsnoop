@@ -4,28 +4,24 @@
 // All other rights reserved.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using ManagedInjector;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace ManagedInjectorLauncher
 {
-	class Program
-	{
-		static void Main(string[] args)
-		{            
+    class Program
+    {
+        static void Main(string[] args)
+        {
             Injector.LogMessage("Starting the injection process...", false);
 
-			var windowHandle = (IntPtr)Int64.Parse(args[0]);
-			var assemblyName = args[1];
-			var className = args[2];
-			var methodName = args[3];
+            var windowHandle = (IntPtr)Int64.Parse(args[0]);
+            var assemblyName = args[1];
+            var className = args[2];
+            var methodName = args[3];
 
-			Injector.Launch(windowHandle, assemblyName, className, methodName);
+            Injector.Launch(windowHandle, assemblyName, className, methodName);
 
             //check to see that it was injected, and if not, retry with the main window handle.
             var process = GetProcessFromWindowHandle(windowHandle);
@@ -35,27 +31,45 @@ namespace ManagedInjectorLauncher
                 Injector.Launch(process.MainWindowHandle, assemblyName, className, methodName);
                 CheckInjectedStatus(process);
             }
-		}
+        }
 
+        /// <summary>
+        /// 通过窗口句柄获取进程
+        /// </summary>
+        /// <param name="windowHandle"></param>
+        /// <returns></returns>
         private static Process GetProcessFromWindowHandle(IntPtr windowHandle)
         {
             int processId;
             GetWindowThreadProcessId(windowHandle, out processId);
             if (processId == 0)
             {
-                Injector.LogMessage(string.Format("could not get process for window handle {0}", windowHandle), true);
+                Injector.LogMessage($"could not get process for window handle {windowHandle.ToString()}", true);
                 return null;
             }
 
-            var process = Process.GetProcessById(processId);
-            if (process == null)
+            try
             {
-                Injector.LogMessage(string.Format("could not get process for PID = {0}", processId), true);
+                var process = Process.GetProcessById(processId);
+                return process;
+                //if (process == null)
+                //{
+                //    Injector.LogMessage($"could not get process for PID = {processId.ToString()}", true);
+                //    return null;
+                //}
+            }
+            catch (Exception)
+            {
+                Injector.LogMessage($"could not get process for PID = {processId.ToString()}", true);
                 return null;
             }
-            return process;
         }
 
+        /// <summary>
+        /// 查看当前是否已经被注入
+        /// </summary>
+        /// <param name="process"></param>
+        /// <returns></returns>
         private static bool CheckInjectedStatus(Process process)
         {
             bool containsFile = false;
@@ -69,17 +83,22 @@ namespace ManagedInjectorLauncher
             }
             if (containsFile)
             {
-                Injector.LogMessage(string.Format("Successfully injected Snoop for process {0} (PID = {1})", process.ProcessName, process.Id), true);
+                Injector.LogMessage($"Successfully injected Snoop for process {process.ProcessName} (PID = {process.Id.ToString()})", true);
             }
             else
             {
-                Injector.LogMessage(string.Format("Failed to inject for process {0} (PID = {1})", process.ProcessName, process.Id), true);
+                Injector.LogMessage($"Failed to inject for process {process.ProcessName} (PID = {process.Id.ToString()})", true);
             }
-
             return containsFile;
         }
 
+        /// <summary>
+        /// 通过窗口句柄获取进程ID，返回线程ID
+        /// </summary>
+        /// <param name="hwnd">窗口句柄</param>
+        /// <param name="processId">进程ID</param>
+        /// <returns>线程ID</returns>
         [DllImport("user32.dll")]
         public static extern int GetWindowThreadProcessId(IntPtr hwnd, out int processId);
-	}
+    }
 }

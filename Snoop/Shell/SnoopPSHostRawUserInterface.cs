@@ -8,6 +8,9 @@ using System.Management.Automation.Host;
 
 namespace Snoop.Shell
 {
+    /// <summary>
+    /// <see cref="PSHostRawUserInterface"/>µÄ·â×°
+    /// </summary>
     internal class SnoopPSHostRawUserInterface : PSHostRawUserInterface
     {
         public override KeyInfo ReadKey(ReadKeyOptions options)

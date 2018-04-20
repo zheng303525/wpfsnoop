@@ -6,16 +6,31 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Media.Imaging;
 
 namespace Snoop
 {
+    /// <summary>
+    /// 三维视图
+    /// </summary>
 	public class VisualTree3DView : Viewport3D
-	{
-		public VisualTree3DView(Visual visual)
+    {
+        private static readonly Pen OutlinePen = new Pen(new SolidColorBrush(Color.FromArgb(128, 255, 0, 0)), 2);
+
+        private readonly bool _drawOutlines = false;
+	    private readonly bool _includeEmptyVisuals = false;
+	    private readonly TrackballBehavior _trackballBehavior;
+	    private readonly ScaleTransform3D _zScaleTransform;
+
+	    public double ZScale
+	    {
+	        get { return this._zScaleTransform.ScaleZ; }
+	        set { this._zScaleTransform.ScaleZ = value; }
+	    }
+
+        public VisualTree3DView(Visual visual)
 		{
 			DirectionalLight directionalLight1 = new DirectionalLight(Colors.White, new Vector3D(0, 0, 1));
 			DirectionalLight directionalLight2 = new DirectionalLight(Colors.White, new Vector3D(0, 0, -1));
@@ -27,8 +42,8 @@ namespace Snoop
 			group.Children.Add(directionalLight1);
 			group.Children.Add(directionalLight2);
 			group.Children.Add(model);
-			this.zScaleTransform = new ScaleTransform3D();
-			group.Transform = this.zScaleTransform;
+			this._zScaleTransform = new ScaleTransform3D();
+			group.Transform = this._zScaleTransform;
 
 			ModelVisual3D modelVisual = new ModelVisual3D();
 			modelVisual.Content = group;
@@ -40,7 +55,7 @@ namespace Snoop
 			Point3D position = lookAtPoint - new Vector3D(0, 0, cameraDistance);
 			Camera camera = new PerspectiveCamera(position, new Vector3D(0, 0, 1), new Vector3D(0, -1, 0), fieldOfView);
 
-			this.zScaleTransform.CenterZ = lookAtPoint.Z;
+			this._zScaleTransform.CenterZ = lookAtPoint.Z;
 
 			this.Children.Add(modelVisual);
 			this.Camera = camera;
@@ -48,21 +63,21 @@ namespace Snoop
 			this.Width = 500;
 			this.Height = 500;
 
-			this.trackballBehavior = new TrackballBehavior(this, lookAtPoint);
-		}
-
-		public double ZScale
-		{
-			get { return this.zScaleTransform.ScaleZ; }
-			set { this.zScaleTransform.ScaleZ = value; }
+			this._trackballBehavior = new TrackballBehavior(this, lookAtPoint);
 		}
 
 		public void Reset()
 		{
-			this.trackballBehavior.Reset();
+			this._trackballBehavior.Reset();
 			this.ZScale = 1;
 		}
 
+        /// <summary>
+        /// 将<see cref="Visual"/>对象转为<see cref="Model3D"/>
+        /// </summary>
+        /// <param name="visual"></param>
+        /// <param name="z"></param>
+        /// <returns></returns>
 		private Model3D ConvertVisualToModel3D(Visual visual, ref double z)
 		{
 			Model3D model = null;
@@ -72,7 +87,7 @@ namespace Snoop
 			{
 				bounds = new Rect(viewport.RenderSize);
 			}
-			if (this.includeEmptyVisuals)
+			if (this._includeEmptyVisuals)
 			{
 				bounds.Union(VisualTreeHelper.GetDescendantBounds(visual));
 			}
@@ -145,13 +160,14 @@ namespace Snoop
 
 			return model;
 		}
+
 		private Brush MakeBrushFromVisual(Visual visual, Rect bounds)
 		{
 			Viewport3D viewport = visual as Viewport3D;
 			if (viewport == null)
 			{
 				Drawing drawing = VisualTreeHelper.GetDrawing(visual);
-				if (this.drawOutlines)
+				if (this._drawOutlines)
 				{
 					bounds.Inflate(VisualTree3DView.OutlinePen.Thickness / 2, VisualTree3DView.OutlinePen.Thickness / 2);
 				}
@@ -163,7 +179,7 @@ namespace Snoop
 				DrawingVisual drawingVisual = new DrawingVisual();
 				DrawingContext drawingContext = drawingVisual.RenderOpen();
 				drawingContext.PushTransform(offsetMatrixTransform);
-				if (this.drawOutlines)
+				if (this._drawOutlines)
 				{
 					drawingContext.DrawRectangle(null, VisualTree3DView.OutlinePen, bounds);
 				}
@@ -190,12 +206,5 @@ namespace Snoop
 
 			return imageBrush;
 		}
-
-		private bool drawOutlines = false;
-		private bool includeEmptyVisuals = false;
-		private TrackballBehavior trackballBehavior;
-		private ScaleTransform3D zScaleTransform;
-
-		private static Pen OutlinePen = new Pen(new SolidColorBrush(Color.FromArgb(128, 255, 0, 0)), 2);
 	}
 }

@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 using Snoop.DebugListenerTab;
 using System.Windows.Data;
 
 namespace Snoop.Converters
 {
+    [ValueConversion(typeof(FilterType), typeof(int))]
     public class FilterTypeToIntConverter : IValueConverter
     {
         public static readonly FilterTypeToIntConverter Default = new FilterTypeToIntConverter();

@@ -15,35 +15,36 @@ using System.Windows.Input;
 namespace Snoop.Shell
 {
     /// <summary>
+    /// 嵌入式的PowerShell界面
     /// Interaction logic for EmbeddedShellView.xaml
     /// </summary>
     public partial class EmbeddedShellView : UserControl
     {
         public event Action<VisualTreeItem> ProviderLocationChanged = delegate { }; 
 
-        private readonly Runspace runspace;
-        private readonly SnoopPSHost host;
-        private int historyIndex;
+        private readonly Runspace _runspace;
+        private readonly SnoopPSHost _host;
+        private int _historyIndex;
 
         public EmbeddedShellView()
         {
             InitializeComponent();
 
-            this.commandTextBox.PreviewKeyDown += OnCommandTextBoxPreviewKeyDown;
+            this.CommandTextBox.PreviewKeyDown += OnCommandTextBoxPreviewKeyDown;
 
             // ignore execution-policy
             var iis = InitialSessionState.CreateDefault();
             iis.AuthorizationManager = new AuthorizationManager(Guid.NewGuid().ToString());
             iis.Providers.Add(new SessionStateProviderEntry(ShellConstants.DriveName, typeof(VisualTreeProvider), string.Empty));
 
-            this.host = new SnoopPSHost(x => this.outputTextBox.AppendText(x));
-            this.runspace = RunspaceFactory.CreateRunspace(this.host, iis);
-            this.runspace.ThreadOptions = PSThreadOptions.UseCurrentThread;
-            this.runspace.ApartmentState = ApartmentState.STA;
-            this.runspace.Open();
+            this._host = new SnoopPSHost(x => this.OutputTextBox.AppendText(x));
+            this._runspace = RunspaceFactory.CreateRunspace(this._host, iis);
+            this._runspace.ThreadOptions = PSThreadOptions.UseCurrentThread;
+            this._runspace.ApartmentState = ApartmentState.STA;
+            this._runspace.Open();
 
             // default required if you intend to inject scriptblocks into the host application
-            Runspace.DefaultRunspace = this.runspace;
+            Runspace.DefaultRunspace = this._runspace;
         }
 
         /// <summary>
@@ -58,10 +59,10 @@ namespace Snoop.Shell
             {
                 switch (e.PropertyName)
                 {
-                    case "CurrentSelection":
+                    case nameof(SnoopUI.CurrentSelection):
                         SetVariable(ShellConstants.Selected, ui.CurrentSelection);
                         break;
-                    case "Root":
+                    case nameof(SnoopUI.Root):
                         SetVariable(ShellConstants.Root, ui.Root);
                         break;
                 }
@@ -76,12 +77,12 @@ namespace Snoop.Shell
             this.SetVariable(ShellConstants.LocationChangedActionKey, action);
 
             string folder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Scripts");
-            Invoke(string.Format("import-module \"{0}\"", Path.Combine(folder, ShellConstants.SnoopModule)));
+            Invoke($"import-module \"{Path.Combine(folder, ShellConstants.SnoopModule)}\"");
 
-            this.outputTextBox.Clear();
+            this.OutputTextBox.Clear();
             Invoke("write-host 'Welcome to the Snoop PowerShell console!'");
             Invoke("write-host '----------------------------------------'");
-            Invoke(string.Format("write-host 'To get started, try using the ${0} and ${1} variables.'", ShellConstants.Root, ShellConstants.Selected));
+            Invoke($"write-host 'To get started, try using the ${ShellConstants.Root} and ${ShellConstants.Selected} variables.'");
 
             FindAndLoadProfile(folder);
         }
@@ -89,7 +90,7 @@ namespace Snoop.Shell
         public void SetVariable(string name, object instance)
         {
             // add to the host so the provider has access to exposed variables
-            this.host[name] = instance;
+            this._host[name] = instance;
 
             // expose to the current runspace
             Invoke(string.Format("${0} = $host.PrivateData['{0}']", name));
@@ -97,12 +98,12 @@ namespace Snoop.Shell
 
         public void NotifySelected(VisualTreeItem item)
         {
-            if (this.autoExpandCheckBox.IsChecked == true)
+            if (this.AutoExpandCheckBox.IsChecked == true)
             {
                 item.IsExpanded = true;
             }
 
-            this.Invoke(string.Format("cd {0}:\\{1}", ShellConstants.DriveName, item.NodePath()));
+            this.Invoke($"cd {ShellConstants.DriveName}:\\{item.NodePath()}");
         }
 
         private void FindAndLoadProfile(string scriptFolder)
@@ -126,7 +127,7 @@ namespace Snoop.Shell
             {
                 Invoke("write-host ''");
                 Invoke(string.Format("${0} = '{1}'; . ${0}", ShellConstants.Profile, scriptPath));
-                Invoke(string.Format("write-host \"Loaded `$profile: ${0}\"", ShellConstants.Profile));
+                Invoke($"write-host \"Loaded `$profile: ${ShellConstants.Profile}\"");
 
                 return true;
             }
@@ -134,41 +135,51 @@ namespace Snoop.Shell
             return false;
         }
 
+        /// <summary>
+        /// 在命令输入框输入时触发此方法
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void OnCommandTextBoxPreviewKeyDown(object sender, KeyEventArgs e)
         {
             switch (e.Key)
             {
-                case Key.Up:
-                    SetCommandTextToHistory(++this.historyIndex);
+                case Key.Up://↑上一条命令
+                    SetCommandTextToHistory(++this._historyIndex);
                     break;
-                case Key.Down:
-                    if (this.historyIndex - 1 <= 0)
+                case Key.Down://↓下一条命令，如果不存在则清空命令输入框
+                    if (this._historyIndex - 1 <= 0)
                     {
-                        this.commandTextBox.Clear();
+                        this.CommandTextBox.Clear();
                     }
                     else
                     {
-                        SetCommandTextToHistory(--this.historyIndex);
+                        SetCommandTextToHistory(--this._historyIndex);
                     }
                     break;
-                case Key.Return:
-                    this.outputTextBox.AppendText(Environment.NewLine);
-                    this.outputTextBox.AppendText(this.commandTextBox.Text);
-                    this.outputTextBox.AppendText(Environment.NewLine);
+                case Key.Return://回车，执行命令
+                    this.OutputTextBox.AppendText(Environment.NewLine);
+                    this.OutputTextBox.AppendText(this.CommandTextBox.Text);
+                    this.OutputTextBox.AppendText(Environment.NewLine);
 
-                    Invoke(this.commandTextBox.Text, true);
-                    this.commandTextBox.Clear();
+                    Invoke(this.CommandTextBox.Text, true);
+                    this.CommandTextBox.Clear();
                     break;
             }
         }
 
+        /// <summary>
+        /// 执行PowerShell命令
+        /// </summary>
+        /// <param name="script">命令</param>
+        /// <param name="addToHistory">是否添加到历史</param>
         private void Invoke(string script, bool addToHistory = false)
         {
-            this.historyIndex = 0;
+            this._historyIndex = 0;
 
             try
             {
-                using (var pipe = this.runspace.CreatePipeline(script, addToHistory))
+                using (var pipe = this._runspace.CreatePipeline(script, addToHistory))
                 {
                     var cmd = new Command("Out-String");
                     cmd.Parameters.Add("Width", Math.Max(2, (int)(this.ActualWidth * 0.7)));
@@ -176,7 +187,7 @@ namespace Snoop.Shell
 
                     foreach (var item in pipe.Invoke())
                     {
-                        this.outputTextBox.AppendText(item.ToString());
+                        this.OutputTextBox.AppendText(item.ToString());
                     }
 
                     foreach (PSObject item in pipe.Error.ReadToEnd())
@@ -192,32 +203,41 @@ namespace Snoop.Shell
             }
             catch (Exception ex)
             {
-                this.outputTextBox.AppendText(string.Format("Oops!  Uncaught exception invoking on the PowerShell runspace: {0}", ex.Message));
+                this.OutputTextBox.AppendText(string.Format("Oops!  Uncaught exception invoking on the PowerShell runspace: {0}", ex.Message));
             }
 
-            this.outputTextBox.ScrollToEnd();
+            this.OutputTextBox.ScrollToEnd();
         }
 
         private void OutputErrorRecord(ErrorRecord error)
         {
-            this.outputTextBox.AppendText(string.Format("{0}{1}", error, error.InvocationInfo != null ? error.InvocationInfo.PositionMessage : string.Empty));
-            this.outputTextBox.AppendText(string.Format("{1}  + CategoryInfo          : {0}", error.CategoryInfo, Environment.NewLine));
-            this.outputTextBox.AppendText(string.Format("{1}  + FullyQualifiedErrorId : {0}", error.FullyQualifiedErrorId, Environment.NewLine));
+            this.OutputTextBox.AppendText($"{error}{(error.InvocationInfo != null ? error.InvocationInfo.PositionMessage : string.Empty)}");
+            this.OutputTextBox.AppendText(string.Format("{1}  + CategoryInfo          : {0}", error.CategoryInfo, Environment.NewLine));
+            this.OutputTextBox.AppendText(string.Format("{1}  + FullyQualifiedErrorId : {0}", error.FullyQualifiedErrorId, Environment.NewLine));
         }
 
+        /// <summary>
+        /// 设置为历史命令
+        /// </summary>
+        /// <param name="history"></param>
         private void SetCommandTextToHistory(int history)
         {
             var cmd = GetHistoryCommand(history);
             if (cmd != null)
             {
-                this.commandTextBox.Text = cmd;
-                this.commandTextBox.SelectionStart = cmd.Length;
+                this.CommandTextBox.Text = cmd;
+                this.CommandTextBox.SelectionStart = cmd.Length;
             }
         }
 
+        /// <summary>
+        /// 取历史命令
+        /// </summary>
+        /// <param name="history"></param>
+        /// <returns></returns>
         private string GetHistoryCommand(int history)
         {
-            using (var pipe = this.runspace.CreatePipeline("get-history -count " + history, false))
+            using (var pipe = this._runspace.CreatePipeline("get-history -count " + history, false))
             {
                 var results = pipe.Invoke();
                 if (results.Count > 0)
@@ -239,7 +259,7 @@ namespace Snoop.Shell
                     Invoke(string.Format("if (${0}) {{ . ${0} }}", ShellConstants.Profile));
                     break;
                 case Key.F12:
-                    this.outputTextBox.Clear();
+                    this.OutputTextBox.Clear();
                     break;
             }
         }

@@ -5,10 +5,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Windows.Data;
-using Snoop;
 using System.ComponentModel;
 using System.Windows;
 using System.Reflection;
@@ -17,6 +14,7 @@ using Snoop.MethodsTab;
 
 namespace Snoop.Converters
 {
+    [ValueConversion(typeof(SnoopParameterInformation), typeof(object))]
     public class SnoopParameterInfoConverter : IValueConverter
     {
         public static readonly SnoopParameterInfoConverter Default = new SnoopParameterInfoConverter();
@@ -44,6 +42,7 @@ namespace Snoop.Converters
         #endregion
     }
 
+    [ValueConversion(typeof(SnoopParameterInformation), typeof(List<DependencyPropertyNameValuePair>))]
     public class SnoopDependencyPropertiesConverter : IValueConverter
     {
         public static readonly SnoopDependencyPropertiesConverter Default = new SnoopDependencyPropertiesConverter();
@@ -104,6 +103,7 @@ namespace Snoop.Converters
         #endregion
     }
 
+    [ValueConversion(typeof(Enum), typeof(Array))]
     public class SnoopEnumValuesConverter : IValueConverter
     {
         public static readonly SnoopEnumValuesConverter Default = new SnoopEnumValuesConverter();
