@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Snoop.DebugListenerTab
 {
 	[Serializable]
 	public class SnoopMultipleFilter : SnoopFilter
 	{
-		private List<SnoopFilter> _singleFilters = new List<SnoopFilter>();
+		private readonly List<SnoopFilter> _singleFilters = new List<SnoopFilter>();
 
 		public override bool FilterMatches(string debugLine)
 		{

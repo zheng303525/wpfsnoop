@@ -3,19 +3,7 @@
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Snoop.MethodsTab
 {
@@ -29,8 +17,6 @@ namespace Snoop.MethodsTab
             InitializeComponent();
         }
 
-
-
         public object RootTarget
         {
             get { return (object)GetValue(RootTargetProperty); }
@@ -38,8 +24,7 @@ namespace Snoop.MethodsTab
         }
 
         // Using a DependencyProperty as the backing store for Target.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty RootTargetProperty =
-            DependencyProperty.Register("RootTarget", typeof(object), typeof(ParameterCreator), new UIPropertyMetadata(null));
+        public static readonly DependencyProperty RootTargetProperty = DependencyProperty.Register("RootTarget", typeof(object), typeof(ParameterCreator), new UIPropertyMetadata(null));
 
         public object SelectedTarget
         {
@@ -53,8 +38,6 @@ namespace Snoop.MethodsTab
             this.SelectedTarget = this.propertyInspector.Target;
             this.Close();            
         }
-
-
 
         private void CancelClick(object sender, RoutedEventArgs e)
         {

@@ -8,25 +8,28 @@ using System.Windows.Controls;
 
 namespace Snoop
 {
+    /// <summary>
+    /// ²¼¶ûÀàÐÍ±à¼­Æ÷
+    /// </summary>
 	public partial class BoolValueEditor : ValueEditor
-	{
-		public override void OnApplyTemplate()
-		{
-			base.OnApplyTemplate();
+    {
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
 
-			var cb = Template.FindName( "PART_CheckBox", this ) as CheckBox;
-			if ( cb != null )
-			{
-				cb.Click += CheckBoxClickedHandler;
-			}
-		}
+            var cb = Template.FindName("PART_CheckBox", this) as CheckBox;
+            if (cb != null)
+            {
+                cb.Click += CheckBoxClickedHandler;
+            }
+        }
 
-		private void CheckBoxClickedHandler( object sender, RoutedEventArgs e )
-		{
-			if ( PropertyInfo != null )
-			{
-				PropertyInfo.IsValueChangedByUser = true;
-			}
-		}
-	}
+        private void CheckBoxClickedHandler(object sender, RoutedEventArgs e)
+        {
+            if (PropertyInfo != null)
+            {
+                PropertyInfo.IsValueChangedByUser = true;
+            }
+        }
+    }
 }

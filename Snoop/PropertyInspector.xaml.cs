@@ -6,16 +6,11 @@
 using System.Linq;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
-using System.Collections;
-using System.Reflection;
 using Snoop.Infrastructure;
 using System.Text;
 using System.Windows.Markup;
@@ -25,353 +20,115 @@ namespace Snoop
 {
     public partial class PropertyInspector : INotifyPropertyChanged
     {
+        #region INotifyPropertyChanged Members
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            Debug.Assert(this.GetType().GetProperty(propertyName) != null);
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion
+
         public static readonly RoutedCommand SnipXamlCommand = new RoutedCommand("SnipXaml", typeof(PropertyInspector));
         public static readonly RoutedCommand PopTargetCommand = new RoutedCommand("PopTarget", typeof(PropertyInspector));
         public static readonly RoutedCommand DelveCommand = new RoutedCommand();
         public static readonly RoutedCommand DelveBindingCommand = new RoutedCommand();
         public static readonly RoutedCommand DelveBindingExpressionCommand = new RoutedCommand();
 
-        public PropertyInspector()
-        {
-            propertyFilter.SelectedFilterSet = AllFilterSets[0];
-
-            this.InitializeComponent();
-
-            this.inspector = this.PropertyGrid;
-            this.inspector.Filter = this.propertyFilter;
-
-            this.CommandBindings.Add(new CommandBinding(PropertyInspector.SnipXamlCommand, this.HandleSnipXaml, this.CanSnipXaml));
-            this.CommandBindings.Add(new CommandBinding(PropertyInspector.PopTargetCommand, this.HandlePopTarget, this.CanPopTarget));
-            this.CommandBindings.Add(new CommandBinding(PropertyInspector.DelveCommand, this.HandleDelve, this.CanDelve));
-            this.CommandBindings.Add(new CommandBinding(PropertyInspector.DelveBindingCommand, this.HandleDelveBinding, this.CanDelveBinding));
-            this.CommandBindings.Add(new CommandBinding(PropertyInspector.DelveBindingExpressionCommand, this.HandleDelveBindingExpression, this.CanDelveBindingExpression));
-
-            // watch for mouse "back" button
-            this.MouseDown += new MouseButtonEventHandler(MouseDownHandler);
-            this.KeyDown += new KeyEventHandler(PropertyInspector_KeyDown);
-
-            this.checkBoxClearAfterDelve.Checked += (s, e) => Properties.Settings.Default.ClearAfterDelve = this.checkBoxClearAfterDelve.IsChecked.HasValue && this.checkBoxClearAfterDelve.IsChecked.Value;
-            this.checkBoxClearAfterDelve.Unchecked += (s, e) => Properties.Settings.Default.ClearAfterDelve = this.checkBoxClearAfterDelve.IsChecked.HasValue && this.checkBoxClearAfterDelve.IsChecked.Value;
-
-            this.checkBoxClearAfterDelve.IsChecked = Properties.Settings.Default.ClearAfterDelve;
-        }
-
-        public bool NameValueOnly
-        {
-            get
-            {
-                return _nameValueOnly;
-            }
-            set
-            {
-                this.PropertyGrid.NameValueOnly = value;
-            }
-        }
-        private bool _nameValueOnly = false;
-
-        private void HandleSnipXaml(object sender, ExecutedRoutedEventArgs e)
-        {
-            try
-            {
-                string xaml = XamlWriter.Save(((PropertyInformation)e.Parameter).Value);
-                Clipboard.SetData(DataFormats.Text, xaml);
-                MessageBox.Show("This brush has been copied to the clipboard. You can paste it into your project.", "Brush copied", MessageBoxButton.OK);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        private void CanSnipXaml(object sender, CanExecuteRoutedEventArgs e)
-        {
-            if (e.Parameter != null && ((PropertyInformation)e.Parameter).Value is Brush)
-                e.CanExecute = true;
-            e.Handled = true;
-        }
-
-        public object RootTarget
-        {
-            get { return this.GetValue(PropertyInspector.RootTargetProperty); }
-            set { this.SetValue(PropertyInspector.RootTargetProperty, value); }
-        }
-        public static readonly DependencyProperty RootTargetProperty =
-            DependencyProperty.Register
-            (
-                "RootTarget",
-                typeof(object),
-                typeof(PropertyInspector),
-                new PropertyMetadata(PropertyInspector.HandleRootTargetChanged)
-            );
-        private static void HandleRootTargetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            PropertyInspector inspector = (PropertyInspector)d;
-
-            inspector.inspectStack.Clear();
-            inspector.Target = e.NewValue;
-
-            inspector._delvePathList.Clear();
-            inspector.OnPropertyChanged("DelvePath");
-
-            inspector.targetToFilter.Clear();
-        }
-
-        public object Target
-        {
-            get { return this.GetValue(PropertyInspector.TargetProperty); }
-            set { this.SetValue(PropertyInspector.TargetProperty, value); }
-        }
-
-        public static readonly DependencyProperty TargetProperty =
-            DependencyProperty.Register
-            (
-                "Target",
-                typeof(object),
-                typeof(PropertyInspector),
-                new PropertyMetadata(PropertyInspector.HandleTargetChanged)
-            );
-
+        private readonly List<object> _inspectStack = new List<object>();
         
-        private static void HandleTargetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private readonly List<PropertyInformation> _delvePathList = new List<PropertyInformation>();
+
+        private readonly Inspector _inspector;
+        private object _lastRootTarget = null;
+        private readonly Dictionary<object, string> _targetToFilter = new Dictionary<object, string>();
+
+        private readonly PropertyFilterSet[] _defaultFilterSets = new PropertyFilterSet[]
         {
-            PropertyInspector inspector = (PropertyInspector)d;
-            inspector.OnPropertyChanged("Type");
-
-            if (e.NewValue != null)
-                inspector.inspectStack.Add(e.NewValue);
-
-            if (inspector.lastRootTarget == inspector.RootTarget && e.OldValue != null && e.NewValue != null && inspector.checkBoxClearAfterDelve.IsChecked.HasValue && inspector.checkBoxClearAfterDelve.IsChecked.Value)
+            new PropertyFilterSet
             {
-                inspector.targetToFilter[e.OldValue.GetType()] = inspector.PropertiesFilter.Text;
-                string text = string.Empty;
-                inspector.targetToFilter.TryGetValue(e.NewValue.GetType(), out text);
-                inspector.PropertiesFilter.Text = text ?? string.Empty;
-            }
-            inspector.lastRootTarget = inspector.RootTarget;
-        }    
-
-        private string GetDelvePath(Type rootTargetType)
-        {
-            StringBuilder delvePath = new StringBuilder(rootTargetType.Name);
-
-            foreach (var propInfo in _delvePathList)
+                DisplayName = "Layout",
+                IsDefault = false,
+                IsEditCommand = false,
+                Properties = new string[]
+                {
+                    "width", "height", "actualwidth", "actualheight", "margin", "padding", "left", "top"
+                }
+            },
+            new PropertyFilterSet
             {
-                int collectionIndex;
-                if ((collectionIndex = propInfo.CollectionIndex()) >= 0)
+                DisplayName = "Grid/Dock",
+                IsDefault = false,
+                IsEditCommand = false,
+                Properties = new string[]
                 {
-                    delvePath.Append(string.Format("[{0}]", collectionIndex));
+                    "grid", "dock"
                 }
-                else
-                {
-                    delvePath.Append(string.Format(".{0}", propInfo.DisplayName));
-                }
-            }
-
-            return delvePath.ToString();
-        }
-
-        private string GetCurrentTypeName(Type rootTargetType)
-        {
-            string type = string.Empty;
-            if (_delvePathList.Count > 0)
+            },
+            new PropertyFilterSet
             {
-                ISkipDelve skipDelve = _delvePathList[_delvePathList.Count - 1].Value as ISkipDelve;
-                if (skipDelve != null && skipDelve.NextValue != null && skipDelve.NextValueType != null)
+                DisplayName = "Color",
+                IsDefault = false,
+                IsEditCommand = false,
+                Properties = new string[]
                 {
-                    return skipDelve.NextValueType.ToString();//we want to make this "future friendly", so we take into account that the string value of the property type may change.
+                    "color", "background", "foreground", "borderbrush", "fill", "stroke"
                 }
-                else if (_delvePathList[_delvePathList.Count - 1].Value != null)
+            },
+            new PropertyFilterSet
+            {
+                DisplayName = "ItemsControl",
+                IsDefault = false,
+                IsEditCommand = false,
+                Properties = new string[]
                 {
-                    type = _delvePathList[_delvePathList.Count - 1].Value.GetType().ToString();
-                }
-                else
-                {
-                    type = _delvePathList[_delvePathList.Count - 1].PropertyType.ToString();
+                    "items", "selected"
                 }
             }
-            else if (_delvePathList.Count == 0)
-            {
-                type = rootTargetType.FullName;
-            }
+        };
 
-            return type;
-        }
+        private readonly PropertyFilter _propertyFilter = new PropertyFilter(string.Empty, true);
 
         /// <summary>
-        /// Delve Path
+        /// 属性筛选器
         /// </summary>
-        public string DelvePath
-        {
-            get
-            {
-                if (this.RootTarget == null)
-                    return "object is NULL";
-
-                Type rootTargetType = this.RootTarget.GetType();
-                string delvePath = GetDelvePath(rootTargetType);
-                string type = GetCurrentTypeName(rootTargetType);
-
-                return string.Format("{0}\n({1})", delvePath, type);
-            }
-        }
-
-        public Type Type
-        {
-            get
-            {
-                if (this.Target != null)
-                    return this.Target.GetType();
-                return null;
-            }
-        }
-
-        public void PushTarget(object target)
-        {
-            this.Target = target;
-        }
-        public void SetTarget(object target)
-        {
-            this.inspectStack.Clear();
-            this.Target = target;
-        }
-
-        private void HandlePopTarget(object sender, ExecutedRoutedEventArgs e)
-        {
-            PopTarget();
-        }
-
-        private void PopTarget()
-        {
-            if (this.inspectStack.Count > 1)
-            {
-                this.Target = this.inspectStack[this.inspectStack.Count - 2];
-                this.inspectStack.RemoveAt(this.inspectStack.Count - 2);
-                this.inspectStack.RemoveAt(this.inspectStack.Count - 2);
-
-                if (this._delvePathList.Count > 0)
-                {
-                    this._delvePathList.RemoveAt(this._delvePathList.Count - 1);
-                    this.OnPropertyChanged("DelvePath");
-                }
-            }
-        }
-        private void CanPopTarget(object sender, CanExecuteRoutedEventArgs e)
-        {
-            if (this.inspectStack.Count > 1)
-            {
-                e.Handled = true;
-                e.CanExecute = true;
-            }
-        }
-
-        private object GetRealTarget(object target)
-        {
-            ISkipDelve skipDelve = target as ISkipDelve;
-            if (skipDelve != null)
-            {
-                return skipDelve.NextValue;
-            }
-            return target;
-        }
-
-        private void HandleDelve(object sender, ExecutedRoutedEventArgs e)
-        {
-            var realTarget = GetRealTarget(((PropertyInformation)e.Parameter).Value);
-
-            if (realTarget != this.Target)
-            {
-                // top 'if' statement is the delve path.
-                // we do this because without doing this, the delve path gets out of sync with the actual delves.
-                // the reason for this is because PushTarget sets the new target,
-                // and if it's equal to the current (original) target, we won't raise the property-changed event,
-                // and therefore, we don't add to our delveStack (the real one).
-
-                this._delvePathList.Add(((PropertyInformation)e.Parameter));
-                this.OnPropertyChanged("DelvePath");
-            }
-
-            if (this.checkBoxClearAfterDelve.IsChecked.HasValue && this.checkBoxClearAfterDelve.IsChecked.Value)
-            { 
-                this.PropertiesFilter.Focus();
-            }
-            this.PushTarget(realTarget);
-        }
-        private void HandleDelveBinding(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.PushTarget(((PropertyInformation)e.Parameter).Binding);
-        }
-        private void HandleDelveBindingExpression(object sender, ExecutedRoutedEventArgs e)
-        {
-            this.PushTarget(((PropertyInformation)e.Parameter).BindingExpression);
-        }
-
-        private void CanDelve(object sender, CanExecuteRoutedEventArgs e)
-        {
-            if (e.Parameter != null && ((PropertyInformation)e.Parameter).Value != null)
-                e.CanExecute = true;
-            e.Handled = true;
-        }
-        private void CanDelveBinding(object sender, CanExecuteRoutedEventArgs e)
-        {
-            if (e.Parameter != null && ((PropertyInformation)e.Parameter).Binding != null)
-                e.CanExecute = true;
-            e.Handled = true;
-        }
-        private void CanDelveBindingExpression(object sender, CanExecuteRoutedEventArgs e)
-        {
-            if (e.Parameter != null && ((PropertyInformation)e.Parameter).BindingExpression != null)
-                e.CanExecute = true;
-            e.Handled = true;
-        }
-
         public PropertyFilter PropertyFilter
         {
-            get { return propertyFilter; }
+            get { return _propertyFilter; }
         }
-        private PropertyFilter propertyFilter = new PropertyFilter(string.Empty, true);
 
+        /// <summary>
+        /// 筛选文本字符串
+        /// </summary>
         public string StringFilter
         {
-            get { return this.propertyFilter.FilterString; }
+            get { return this._propertyFilter.FilterString; }
             set
             {
-                this.propertyFilter.FilterString = value;
+                this._propertyFilter.FilterString = value;
 
-                this.inspector.Filter = this.propertyFilter;
+                this._inspector.Filter = this._propertyFilter;
 
-                this.OnPropertyChanged("StringFilter");
-            }
-        }
-
-        public bool ShowDefaults
-        {
-            get { return this.propertyFilter.ShowDefaults; }
-            set
-            {
-                this.propertyFilter.ShowDefaults = value;
-
-                this.inspector.Filter = this.propertyFilter;
-
-                this.OnPropertyChanged("ShowDefaults");
+                this.OnPropertyChanged(nameof(StringFilter));
             }
         }
 
         /// <summary>
-        /// Looking for "browse back" mouse button.
-        /// Pop properties context when clicked.
+        /// 是否显示依赖项属性为默认值的属性
         /// </summary>
-        private void MouseDownHandler(object sender, MouseButtonEventArgs e)
+        public bool ShowDefaults
         {
-            if (e.ChangedButton == MouseButton.XButton1)
+            get { return this._propertyFilter.ShowDefaults; }
+            set
             {
-                PopTarget();
-            }
-        }
-        private void PropertyInspector_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (Keyboard.Modifiers == ModifierKeys.Alt && e.SystemKey == Key.Left)
-            {
-                PopTarget();
+                this._propertyFilter.ShowDefaults = value;
+
+                this._inspector.Filter = this._propertyFilter;
+
+                this.OnPropertyChanged(nameof(ShowDefaults));
             }
         }
 
@@ -381,11 +138,11 @@ namespace Snoop
         /// </summary>
         public PropertyFilterSet SelectedFilterSet
         {
-            get { return propertyFilter.SelectedFilterSet; }
+            get { return _propertyFilter.SelectedFilterSet; }
             set
             {
-                propertyFilter.SelectedFilterSet = value;
-                OnPropertyChanged("SelectedFilterSet");
+                _propertyFilter.SelectedFilterSet = value;
+                OnPropertyChanged(nameof(SelectedFilterSet));
 
                 if (value == null)
                     return;
@@ -408,7 +165,7 @@ namespace Snoop
                         // take the adjusted values from the dialog, setter will SAVE them to user properties
                         UserFilterSets = CleansFilterPropertyNames(dlg.ItemsSource);
                         // trigger the UI to re-bind to the collection, so user sees changes they just made
-                        OnPropertyChanged("AllFilterSets");
+                        OnPropertyChanged(nameof(AllFilterSets));
                     }
 
                     // now that we're out of the dialog, set current selection back to "(default)"
@@ -423,11 +180,13 @@ namespace Snoop
                 }
                 else
                 {
-                    this.inspector.Filter = this.propertyFilter;
-                    OnPropertyChanged("SelectedFilterSet");
+                    this._inspector.Filter = this._propertyFilter;
+                    OnPropertyChanged(nameof(SelectedFilterSet));
                 }
             }
         }
+
+        private PropertyFilterSet[] _filterSets;
 
         /// <summary>
         /// Get or Set the collection of User filter sets.  These are the filters that are configurable by 
@@ -448,7 +207,7 @@ namespace Snoop
                     }
                     catch (Exception ex)
                     {
-                        string msg = String.Format("Error reading user filters from settings. Using defaults.\r\n\r\n{0}", ex.Message);
+                        string msg = $"Error reading user filters from settings. Using defaults.\r\n\r\n{ex.Message}";
                         MessageBox.Show(msg, "Exception", MessageBoxButton.OK, MessageBoxImage.Error);
                         ret.Clear();
                         ret.AddRange(_defaultFilterSets);
@@ -502,6 +261,325 @@ namespace Snoop
         }
 
         /// <summary>
+        /// Delve Path
+        /// </summary>
+        public string DelvePath
+        {
+            get
+            {
+                if (this.RootTarget == null)
+                    return "object is NULL";
+
+                Type rootTargetType = this.RootTarget.GetType();
+                string delvePath = GetDelvePath(rootTargetType);
+                string type = GetCurrentTypeName(rootTargetType);
+
+                return $"{delvePath}\n({type})";
+            }
+        }
+
+        /// <summary>
+        /// 目标对象类型
+        /// </summary>
+        public Type Type
+        {
+            get
+            {
+                if (this.Target != null)
+                    return this.Target.GetType();
+                return null;
+            }
+        }
+
+        private bool _nameValueOnly = false;
+
+        /// <summary>
+        /// 只显示Name和Value列
+        /// </summary>
+        public bool NameValueOnly
+        {
+            get
+            {
+                return _nameValueOnly;
+            }
+            set
+            {
+                this.PropertyGrid.NameValueOnly = value;
+            }
+        }
+
+        public PropertyInspector()
+        {
+            _propertyFilter.SelectedFilterSet = AllFilterSets[0];
+
+            this.InitializeComponent();
+
+            this._inspector = this.PropertyGrid;
+            this._inspector.Filter = this._propertyFilter;
+
+            this.CommandBindings.Add(new CommandBinding(PropertyInspector.SnipXamlCommand, this.HandleSnipXaml, this.CanSnipXaml));
+            this.CommandBindings.Add(new CommandBinding(PropertyInspector.PopTargetCommand, this.HandlePopTarget, this.CanPopTarget));
+            this.CommandBindings.Add(new CommandBinding(PropertyInspector.DelveCommand, this.HandleDelve, this.CanDelve));
+            this.CommandBindings.Add(new CommandBinding(PropertyInspector.DelveBindingCommand, this.HandleDelveBinding, this.CanDelveBinding));
+            this.CommandBindings.Add(new CommandBinding(PropertyInspector.DelveBindingExpressionCommand, this.HandleDelveBindingExpression, this.CanDelveBindingExpression));
+
+            // watch for mouse "back" button
+            this.MouseDown += new MouseButtonEventHandler(MouseDownHandler);
+            this.KeyDown += new KeyEventHandler(PropertyInspector_KeyDown);
+
+            this.checkBoxClearAfterDelve.Checked += (s, e) => Properties.Settings.Default.ClearAfterDelve = this.checkBoxClearAfterDelve.IsChecked.HasValue && this.checkBoxClearAfterDelve.IsChecked.Value;
+            this.checkBoxClearAfterDelve.Unchecked += (s, e) => Properties.Settings.Default.ClearAfterDelve = this.checkBoxClearAfterDelve.IsChecked.HasValue && this.checkBoxClearAfterDelve.IsChecked.Value;
+
+            this.checkBoxClearAfterDelve.IsChecked = Properties.Settings.Default.ClearAfterDelve;
+        }
+
+        /// <summary>
+        /// 原始目标对象（根）
+        /// </summary>
+        public object RootTarget
+        {
+            get { return this.GetValue(PropertyInspector.RootTargetProperty); }
+            set { this.SetValue(PropertyInspector.RootTargetProperty, value); }
+        }
+
+        public static readonly DependencyProperty RootTargetProperty = DependencyProperty.Register("RootTarget", typeof(object), typeof(PropertyInspector), new PropertyMetadata(PropertyInspector.HandleRootTargetChanged));
+
+        private static void HandleRootTargetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            PropertyInspector inspector = (PropertyInspector)d;
+
+            inspector._inspectStack.Clear();
+            inspector.Target = e.NewValue;
+
+            inspector._delvePathList.Clear();
+            inspector.OnPropertyChanged(nameof(DelvePath));
+
+            inspector._targetToFilter.Clear();
+        }
+
+        /// <summary>
+        /// 目标对象
+        /// </summary>
+        public object Target
+        {
+            get { return this.GetValue(PropertyInspector.TargetProperty); }
+            set { this.SetValue(PropertyInspector.TargetProperty, value); }
+        }
+
+        public static readonly DependencyProperty TargetProperty = DependencyProperty.Register("Target", typeof(object), typeof(PropertyInspector), new PropertyMetadata(PropertyInspector.HandleTargetChanged));
+
+        private static void HandleTargetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            PropertyInspector inspector = (PropertyInspector)d;
+            inspector.OnPropertyChanged(nameof(Type));
+
+            if (e.NewValue != null)
+                inspector._inspectStack.Add(e.NewValue);
+
+            if (inspector._lastRootTarget == inspector.RootTarget && e.OldValue != null && e.NewValue != null && inspector.checkBoxClearAfterDelve.IsChecked.HasValue && inspector.checkBoxClearAfterDelve.IsChecked.Value)
+            {
+                inspector._targetToFilter[e.OldValue.GetType()] = inspector.PropertiesFilter.Text;
+                string text = string.Empty;
+                inspector._targetToFilter.TryGetValue(e.NewValue.GetType(), out text);
+                inspector.PropertiesFilter.Text = text ?? string.Empty;
+            }
+            inspector._lastRootTarget = inspector.RootTarget;
+        }
+
+        private void HandleSnipXaml(object sender, ExecutedRoutedEventArgs e)
+        {
+            try
+            {
+                string xaml = XamlWriter.Save(((PropertyInformation)e.Parameter).Value);
+                Clipboard.SetData(DataFormats.Text, xaml);
+                MessageBox.Show("This brush has been copied to the clipboard. You can paste it into your project.", "Brush copied", MessageBoxButton.OK);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void CanSnipXaml(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (e.Parameter != null && ((PropertyInformation)e.Parameter).Value is Brush)
+                e.CanExecute = true;
+            e.Handled = true;
+        }
+
+        private string GetDelvePath(Type rootTargetType)
+        {
+            StringBuilder delvePath = new StringBuilder(rootTargetType.Name);
+
+            foreach (var propInfo in _delvePathList)
+            {
+                int collectionIndex;
+                if ((collectionIndex = propInfo.CollectionIndex()) >= 0)
+                {
+                    delvePath.Append($"[{collectionIndex}]");
+                }
+                else
+                {
+                    delvePath.Append($".{propInfo.DisplayName}");
+                }
+            }
+
+            return delvePath.ToString();
+        }
+
+        private string GetCurrentTypeName(Type rootTargetType)
+        {
+            string type = string.Empty;
+            if (_delvePathList.Count > 0)
+            {
+                ISkipDelve skipDelve = _delvePathList[_delvePathList.Count - 1].Value as ISkipDelve;
+                if (skipDelve != null && skipDelve.NextValue != null && skipDelve.NextValueType != null)
+                {
+                    return skipDelve.NextValueType.ToString();//we want to make this "future friendly", so we take into account that the string value of the property type may change.
+                }
+                else if (_delvePathList[_delvePathList.Count - 1].Value != null)
+                {
+                    type = _delvePathList[_delvePathList.Count - 1].Value.GetType().ToString();
+                }
+                else
+                {
+                    type = _delvePathList[_delvePathList.Count - 1].PropertyType.ToString();
+                }
+            }
+            else if (_delvePathList.Count == 0)
+            {
+                type = rootTargetType.FullName;
+            }
+
+            return type;
+        }
+
+        public void PushTarget(object target)
+        {
+            this.Target = target;
+        }
+
+        public void SetTarget(object target)
+        {
+            this._inspectStack.Clear();
+            this.Target = target;
+        }
+
+        private void HandlePopTarget(object sender, ExecutedRoutedEventArgs e)
+        {
+            PopTarget();
+        }
+
+        private void PopTarget()
+        {
+            if (this._inspectStack.Count > 1)
+            {
+                this.Target = this._inspectStack[this._inspectStack.Count - 2];
+                this._inspectStack.RemoveAt(this._inspectStack.Count - 2);
+                this._inspectStack.RemoveAt(this._inspectStack.Count - 2);
+
+                if (this._delvePathList.Count > 0)
+                {
+                    this._delvePathList.RemoveAt(this._delvePathList.Count - 1);
+                    this.OnPropertyChanged(nameof(DelvePath));
+                }
+            }
+        }
+
+        private void CanPopTarget(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (this._inspectStack.Count > 1)
+            {
+                e.Handled = true;
+                e.CanExecute = true;
+            }
+        }
+
+        private object GetRealTarget(object target)
+        {
+            ISkipDelve skipDelve = target as ISkipDelve;
+            if (skipDelve != null)
+            {
+                return skipDelve.NextValue;
+            }
+            return target;
+        }
+
+        private void HandleDelve(object sender, ExecutedRoutedEventArgs e)
+        {
+            var realTarget = GetRealTarget(((PropertyInformation)e.Parameter).Value);
+
+            if (realTarget != this.Target)
+            {
+                // top 'if' statement is the delve path.
+                // we do this because without doing this, the delve path gets out of sync with the actual delves.
+                // the reason for this is because PushTarget sets the new target,
+                // and if it's equal to the current (original) target, we won't raise the property-changed event,
+                // and therefore, we don't add to our delveStack (the real one).
+
+                this._delvePathList.Add(((PropertyInformation)e.Parameter));
+                this.OnPropertyChanged(nameof(DelvePath));
+            }
+
+            if (this.checkBoxClearAfterDelve.IsChecked.HasValue && this.checkBoxClearAfterDelve.IsChecked.Value)
+            { 
+                this.PropertiesFilter.Focus();
+            }
+            this.PushTarget(realTarget);
+        }
+
+        private void HandleDelveBinding(object sender, ExecutedRoutedEventArgs e)
+        {
+            this.PushTarget(((PropertyInformation)e.Parameter).Binding);
+        }
+
+        private void HandleDelveBindingExpression(object sender, ExecutedRoutedEventArgs e)
+        {
+            this.PushTarget(((PropertyInformation)e.Parameter).BindingExpression);
+        }
+
+        private void CanDelve(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (e.Parameter != null && ((PropertyInformation)e.Parameter).Value != null)
+                e.CanExecute = true;
+            e.Handled = true;
+        }
+
+        private void CanDelveBinding(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (e.Parameter != null && ((PropertyInformation)e.Parameter).Binding != null)
+                e.CanExecute = true;
+            e.Handled = true;
+        }
+
+        private void CanDelveBindingExpression(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (e.Parameter != null && ((PropertyInformation)e.Parameter).BindingExpression != null)
+                e.CanExecute = true;
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Looking for "browse back" mouse button.
+        /// Pop properties context when clicked.
+        /// </summary>
+        private void MouseDownHandler(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.XButton1)
+            {
+                PopTarget();
+            }
+        }
+
+        private void PropertyInspector_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Alt && e.SystemKey == Key.Left)
+            {
+                PopTarget();
+            }
+        }
+
+        /// <summary>
         /// Make a deep copy of the filter collection.
         /// This is used when heading into the Edit dialog, so the user is editing a copy of the
         /// filters, in case they cancel the dialog - we dont want to alter their live collection.
@@ -538,67 +616,5 @@ namespace Snoop
             }
             return collection.ToArray();
         }
-
-        private List<object> inspectStack = new List<object>();
-        private PropertyFilterSet[] _filterSets;
-        private List<PropertyInformation> _delvePathList = new List<PropertyInformation>();
-
-        private Inspector inspector;
-        private object lastRootTarget = null;
-        private readonly Dictionary<object, string> targetToFilter = new Dictionary<object, string>();
-
-        private readonly PropertyFilterSet[] _defaultFilterSets = new PropertyFilterSet[]
-		{
-			new PropertyFilterSet
-			{
-				DisplayName = "Layout",
-				IsDefault = false,
-				IsEditCommand = false,
-				Properties = new string[]
-				{
-					"width", "height", "actualwidth", "actualheight", "margin", "padding", "left", "top"
-				}
-			},
-			new PropertyFilterSet
-			{
-				DisplayName = "Grid/Dock",
-				IsDefault = false,
-				IsEditCommand = false,
-				Properties = new string[]
-				{
-					"grid", "dock"
-				}
-			},
-			new PropertyFilterSet
-			{
-				DisplayName = "Color",
-				IsDefault = false,
-				IsEditCommand = false,
-				Properties = new string[]
-				{
-					"color", "background", "foreground", "borderbrush", "fill", "stroke"
-				}
-			},
-			new PropertyFilterSet
-			{
-				DisplayName = "ItemsControl",
-				IsDefault = false,
-				IsEditCommand = false,
-				Properties = new string[]
-				{
-					"items", "selected"
-				}
-			}
-		};
-
-        #region INotifyPropertyChanged Members
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string propertyName)
-        {
-            Debug.Assert(this.GetType().GetProperty(propertyName) != null);
-            if (this.PropertyChanged != null)
-                this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-        }
-        #endregion
     }
 }

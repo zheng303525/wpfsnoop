@@ -254,12 +254,16 @@ namespace Snoop
 		private int visualChildrenCount = 0;
 
 
-		public event PropertyChangedEventHandler PropertyChanged;
-		protected void OnPropertyChanged(string propertyName)
-		{
-			Debug.Assert(this.GetType().GetProperty(propertyName) != null);
-			if (this.PropertyChanged != null)
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-		}
-	}
+	    #region INotifyPropertyChanged Members
+
+	    public event PropertyChangedEventHandler PropertyChanged;
+
+	    protected void OnPropertyChanged(string propertyName)
+	    {
+	        Debug.Assert(this.GetType().GetProperty(propertyName) != null);
+	        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+	    }
+
+	    #endregion
+    }
 }

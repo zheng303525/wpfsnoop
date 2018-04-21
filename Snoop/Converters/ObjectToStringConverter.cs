@@ -9,7 +9,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 
-namespace Snoop
+namespace Snoop.Converters
 {
     [ValueConversion(typeof(FrameworkElement), typeof(string))]
     [ValueConversion(typeof(RoutedCommand), typeof(string))]

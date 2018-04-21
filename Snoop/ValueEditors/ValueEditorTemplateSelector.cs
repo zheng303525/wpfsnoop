@@ -10,52 +10,67 @@ using System.Windows.Media;
 
 namespace Snoop
 {
+    /// <summary>
+    /// 属性编辑模板选择器
+    /// </summary>
 	public class ValueEditorTemplateSelector : DataTemplateSelector
-	{
-		public DataTemplate StandardTemplate
-		{
-			get { return this.standardTemplate; }
-			set { this.standardTemplate = value; }
-		}
-		private DataTemplate standardTemplate;
+    {
+        private DataTemplate _standardTemplate;
 
-		public DataTemplate EnumTemplate
-		{
-			get { return this.enumTemplate; }
-			set { this.enumTemplate = value; }
-		}
-		private DataTemplate enumTemplate;
+        public DataTemplate StandardTemplate
+        {
+            get { return this._standardTemplate; }
+            set { this._standardTemplate = value; }
+        }
 
-		public DataTemplate BoolTemplate
-		{
-			get { return this.boolTemplate; }
-			set { this.boolTemplate = value; }
-		}
-		private DataTemplate boolTemplate;
+        private DataTemplate _enumTemplate;
 
-		public DataTemplate BrushTemplate
-		{
-			get { return this.brushTemplate; }
-			set { this.brushTemplate = value; }
-		}
-		private DataTemplate brushTemplate;
+        /// <summary>
+        /// 枚举类型编辑模板
+        /// </summary>
+        public DataTemplate EnumTemplate
+        {
+            get { return this._enumTemplate; }
+            set { this._enumTemplate = value; }
+        }
 
+        private DataTemplate _boolTemplate;
 
-		public override DataTemplate SelectTemplate(object item, DependencyObject container)
-		{
-			PropertyInformation property = (PropertyInformation)item;
+        /// <summary>
+        /// 布尔类型编辑模板
+        /// </summary>
+        public DataTemplate BoolTemplate
+        {
+            get { return this._boolTemplate; }
+            set { this._boolTemplate = value; }
+        }
 
-			if (property.PropertyType.IsEnum)
-				return this.EnumTemplate;
-			else if (property.PropertyType.Equals(typeof(bool)))
-				return this.BoolTemplate;
-			else if ( property.PropertyType.IsGenericType 
-				&& Nullable.GetUnderlyingType( property.PropertyType ) == typeof(bool) )
-				return this.BoolTemplate;
-			else if (typeof(Brush).IsAssignableFrom(property.PropertyType))
-				return this.brushTemplate;
+        private DataTemplate _brushTemplate;
 
-			return this.StandardTemplate;
-		}
-	}
+        /// <summary>
+        /// <see cref="Brush"/>类型编辑模板
+        /// </summary>
+        public DataTemplate BrushTemplate
+        {
+            get { return this._brushTemplate; }
+            set { this._brushTemplate = value; }
+        }
+
+        public override DataTemplate SelectTemplate(object item, DependencyObject container)
+        {
+            PropertyInformation property = (PropertyInformation)item;
+
+            if (property.PropertyType.IsEnum)
+                return this.EnumTemplate;
+            else if (property.PropertyType.Equals(typeof(bool)))
+                return this.BoolTemplate;
+            else if (property.PropertyType.IsGenericType
+                && Nullable.GetUnderlyingType(property.PropertyType) == typeof(bool))
+                return this.BoolTemplate;
+            else if (typeof(Brush).IsAssignableFrom(property.PropertyType))
+                return this._brushTemplate;
+
+            return this.StandardTemplate;
+        }
+    }
 }

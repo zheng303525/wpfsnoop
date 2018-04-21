@@ -3,18 +3,22 @@
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
 
 namespace Snoop.Infrastructure
 {
+    /// <summary>
+    /// 用于缓存对象属性信息
+    /// </summary>
 	public static class ResourceKeyCache
 	{
-		private static Dictionary<object, string> Keys = new Dictionary<object, string>();
+		private static readonly Dictionary<object, string> Keys = new Dictionary<object, string>();
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="element"></param>
+        /// <returns></returns>
 		public static string GetKey(object element)
 		{
 			string key;

@@ -4,9 +4,6 @@
 // All other rights reserved.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Reflection;
 using System.Windows.Input;
@@ -17,7 +14,6 @@ namespace Snoop.MethodsTab
 {
     public class SnoopParameterInformation : DependencyObject
     {
-
         private ParameterInfo _parameterInfo = null;
         private ICommand _createCustomParameterCommand = null;
         private ICommand _nullOutParameter = null;
@@ -143,9 +139,6 @@ namespace Snoop.MethodsTab
         }
 
         // Using a DependencyProperty as the backing store for ParameterValue.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty ParameterValueProperty =
-            DependencyProperty.Register("ParameterValue", typeof(object), typeof(SnoopParameterInformation), new UIPropertyMetadata(null));
-
-
+        public static readonly DependencyProperty ParameterValueProperty = DependencyProperty.Register("ParameterValue", typeof(object), typeof(SnoopParameterInformation), new UIPropertyMetadata(null));       
     }
 }

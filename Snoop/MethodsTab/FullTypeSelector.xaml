@@ -5,14 +5,13 @@ Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 All other rights reserved.
 -->
 <Window x:Class="Snoop.MethodsTab.FullTypeSelector"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      mc:Ignorable="d" 
-      d:DesignHeight="354" d:DesignWidth="647"
-      SizeToContent="WidthAndHeight">
-
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+        mc:Ignorable="d" 
+        d:DesignHeight="354" d:DesignWidth="647"
+        SizeToContent="WidthAndHeight">
     <Grid Height="282" Width="587">
         <ComboBox Height="29" HorizontalAlignment="Left" Margin="16,37,0,0" SelectionChanged="comboBoxAssemblies_SelectionChanged" Name="comboBoxAssemblies" VerticalAlignment="Top" Width="507" />
         <ComboBox Height="30" HorizontalAlignment="Left" Margin="16,110,0,0" Name="comboBoxTypes" VerticalAlignment="Top" Width="507" />

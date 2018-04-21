@@ -1,19 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.ComponentModel;
-using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
-using System.Runtime.Serialization;
 using Snoop.Infrastructure;
 
 namespace Snoop.DebugListenerTab
@@ -23,20 +11,22 @@ namespace Snoop.DebugListenerTab
 	/// </summary>
 	public partial class SetFiltersWindow : Window
 	{
-		public SetFiltersWindow(FiltersViewModel viewModel)
+	    private readonly List<SnoopSingleFilter> _initialFilters;
+	    private bool _setFilterClicked = false;
+
+        public SetFiltersWindow(FiltersViewModel viewModel)
 		{
 			this.DataContext = viewModel;
 			viewModel.ResetDirtyFlag();
 
 			InitializeComponent();
 
-			initialFilters = MakeDeepCopyOfFilters(this.ViewModel.Filters);
+			_initialFilters = MakeDeepCopyOfFilters(this.ViewModel.Filters);
 
 			this.Loaded += SetFiltersWindow_Loaded;
 			this.Closed += SetFiltersWindow_Closed;
 		}
 
-	
 		internal FiltersViewModel ViewModel
 		{
 			get
@@ -45,11 +35,11 @@ namespace Snoop.DebugListenerTab
 			}
 		}
 
-
 		private void SetFiltersWindow_Loaded(object sender, RoutedEventArgs e)
 		{
 			SnoopPartsRegistry.AddSnoopVisualTreeRoot(this);
 		}
+
 		private void SetFiltersWindow_Closed(object sender, EventArgs e)
 		{
 			if (_setFilterClicked || !this.ViewModel.IsDirty)
@@ -63,7 +53,7 @@ namespace Snoop.DebugListenerTab
 				return;
 			}
 
-			this.ViewModel.InitializeFilters(initialFilters);
+			this.ViewModel.InitializeFilters(_initialFilters);
 
 			SnoopPartsRegistry.RemoveSnoopVisualTreeRoot(this);
 		}
@@ -75,6 +65,7 @@ namespace Snoop.DebugListenerTab
 			//this.listBoxFilters.ScrollIntoView(this.listBoxFilters.ItemContainerGenerator.ContainerFromIndex(this.listBoxFilters.Items.Count - 1));
 
 		}
+
 		private void buttonRemoveFilter_Click(object sender, RoutedEventArgs e)
 		{
 			FrameworkElement frameworkElement = sender as FrameworkElement;
@@ -87,6 +78,7 @@ namespace Snoop.DebugListenerTab
 
 			ViewModel.RemoveFilter(filter);
 		}
+
 		private void buttonSetFilter_Click(object sender, RoutedEventArgs e)
 		{
 			SaveFiltersToSettings();
@@ -122,10 +114,12 @@ namespace Snoop.DebugListenerTab
 			}
 			this.ViewModel.GroupFilters(filtersToGroup);
 		}
+
 		private void menuItemClearFilterGroups_Click(object sender, RoutedEventArgs e)
 		{
 			this.ViewModel.ClearFilterGroups();
 		}
+
 		private void menuItemSetInverse_Click(object sender, RoutedEventArgs e)
 		{
 			foreach (SnoopFilter filter in this.listBoxFilters.SelectedItems)
@@ -136,8 +130,7 @@ namespace Snoop.DebugListenerTab
 				filter.IsInverse = !filter.IsInverse;
 			}
 		}
-
-
+        
 		private void SaveFiltersToSettings()
 		{
 			List<SnoopSingleFilter> singleFilters = new List<SnoopSingleFilter>();
@@ -184,10 +177,6 @@ namespace Snoop.DebugListenerTab
 		//		return null;
 		//	}
 		//}
-
-
-		private List<SnoopSingleFilter> initialFilters;
-		private bool _setFilterClicked = false;
 	}
 }
 

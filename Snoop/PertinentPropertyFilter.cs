@@ -9,19 +9,36 @@ using System.Windows;
 
 namespace Snoop
 {
+    /// <summary>
+    /// 对象属性筛选器
+    /// </summary>
 	public class PertinentPropertyFilter
-	{
-		public PertinentPropertyFilter(object target)
+    {
+        /// <summary>
+        /// 目标对象
+        /// </summary>
+        private readonly object _target;
+
+        /// <summary>
+        /// 目标对象是否是<see cref="FrameworkElement"/>，如果是则为目标对象，否则为空。
+        /// </summary>
+        private readonly FrameworkElement _element;
+
+        public PertinentPropertyFilter(object target)
 		{
-			this.target = target;
-			this.element = this.target as FrameworkElement;
+			this._target = target;
+			this._element = this._target as FrameworkElement;
 		}
 
-
+        /// <summary>
+        /// 筛选函数
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
 		public bool Filter(PropertyDescriptor property)
 		{
-			if (this.element == null)
-				return true;
+			if (this._element == null)//如果不是FrameworkElement对象，则属性筛选器全部返回true
+                return true;
 
 			// Filter the 20 stylistic set properties that I've never seen used.
 			if (property.Name.Contains("Typography.StylisticSet"))
@@ -37,7 +54,7 @@ namespace Snoop
 				if (dpd == null)
 					return false;
 
-				FrameworkElement element = this.element;
+				FrameworkElement element = this._element;
 				do
 				{
 					element = element.Parent as FrameworkElement;
@@ -55,7 +72,7 @@ namespace Snoop
 				if (attachedPropertyForType.TargetType.IsSubclassOf(typeof(DependencyObject)))
 				{
 					DependencyObjectType doType = DependencyObjectType.FromSystemType(attachedPropertyForType.TargetType);
-					if (doType != null && doType.IsInstanceOfType(this.element))
+					if (doType != null && doType.IsInstanceOfType(this._element))
 						return true;
 				}
 
@@ -63,7 +80,7 @@ namespace Snoop
 			}
 			else if (attachedPropertyForAttribute != null)
 			{
-				Attribute dependentAttribute = TypeDescriptor.GetAttributes(this.target)[attachedPropertyForAttribute.AttributeType];
+				Attribute dependentAttribute = TypeDescriptor.GetAttributes(this._target)[attachedPropertyForAttribute.AttributeType];
 				if (dependentAttribute != null)
 					return !dependentAttribute.IsDefaultAttribute();
 				return false;
@@ -71,9 +88,5 @@ namespace Snoop
 
 			return true;
 		}
-
-
-		private object target;
-		private FrameworkElement element;
 	}
 }

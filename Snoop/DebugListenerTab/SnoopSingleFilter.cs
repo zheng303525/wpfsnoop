@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Snoop.DebugListenerTab
@@ -9,8 +6,6 @@ namespace Snoop.DebugListenerTab
 	[Serializable]
 	public class SnoopSingleFilter : SnoopFilter, ICloneable
 	{
-		private string _text;
-
 		public SnoopSingleFilter()
 		{
 			this.Text = string.Empty;
@@ -18,8 +13,9 @@ namespace Snoop.DebugListenerTab
 
 		public FilterType FilterType { get; set; }
 
+	    private string _text;
 
-		public string Text
+        public string Text
 		{
 			get
 			{

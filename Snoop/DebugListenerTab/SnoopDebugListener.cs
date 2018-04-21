@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Diagnostics;
 
 namespace Snoop.DebugListenerTab
 {
 	public class SnoopDebugListener : TraceListener
 	{
-		private IList<IListener> _listeners = new List<IListener>();
+		private readonly IList<IListener> _listeners = new List<IListener>();
 
 		public void RegisterListener(IListener listener)
 		{

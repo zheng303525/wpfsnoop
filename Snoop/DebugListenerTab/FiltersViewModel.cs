@@ -1,45 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
-using System.Runtime.Serialization;
+using System.Diagnostics;
 
 namespace Snoop.DebugListenerTab
 {
 	[Serializable]
 	public class FiltersViewModel : INotifyPropertyChanged
 	{
-		private List<SnoopMultipleFilter> multipleFilters = new List<SnoopMultipleFilter>();
-		private bool isDirty = false;
+	    #region INotifyPropertyChanged Members
+
+	    public event PropertyChangedEventHandler PropertyChanged;
+
+	    protected void OnPropertyChanged(string propertyName)
+	    {
+	        Debug.Assert(this.GetType().GetProperty(propertyName) != null);
+	        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+	    }
+
+        #endregion
+
+	    private List<SnoopMultipleFilter> multipleFilters = new List<SnoopMultipleFilter>();
+	    private string _filterStatus;
+
+        private bool _isSet;
+	   
+	    public bool IsSet
+	    {
+	        get
+	        {
+	            return _isSet;
+	        }
+	        set
+	        {
+	            _isSet = value;
+	            OnPropertyChanged("IsSet");
+	            FilterStatus = _isSet ? "Filter is ON" : "Filter is OFF";
+	        }
+	    }
+
+	    public string FilterStatus
+	    {
+	        get
+	        {
+	            return _filterStatus;
+	        }
+	        set
+	        {
+	            _filterStatus = value;
+	            OnPropertyChanged("FilterStatus");
+	        }
+	    }
+
+	    private readonly ObservableCollection<SnoopFilter> _filters = new ObservableCollection<SnoopFilter>();
+
+	    public IEnumerable<SnoopFilter> Filters
+	    {
+	        get
+	        {
+	            return _filters;
+	        }
+	    }
 
 		public void ResetDirtyFlag()
 		{
-			isDirty = false;
-			foreach (var filter in this.filters)
+			_isDirty = false;
+			foreach (var filter in this._filters)
 			{
 				filter.ResetDirtyFlag();
 			}
 		}
 
-		public bool IsDirty
+	    private bool _isDirty = false;
+
+        public bool IsDirty
 		{
 			get
 			{
-				if (isDirty)
+				if (_isDirty)
 					return true;
 
-				foreach (var filter in this.filters)
+				foreach (var filter in this._filters)
 				{
 					if (filter.IsDirty)
 						return true;
@@ -50,7 +93,7 @@ namespace Snoop.DebugListenerTab
 
 		public FiltersViewModel()
 		{
-			filters.Add(new SnoopSingleFilter());
+			_filters.Add(new SnoopSingleFilter());
 			FilterStatus = _isSet ? "Filter is ON" : "Filter is OFF";
 		}
 
@@ -61,17 +104,17 @@ namespace Snoop.DebugListenerTab
 
 		public void InitializeFilters(IList<SnoopSingleFilter> singleFilters)
 		{
-			this.filters.Clear();
+			this._filters.Clear();
 
 			if (singleFilters == null)
 			{
-				filters.Add(new SnoopSingleFilter());
+				_filters.Add(new SnoopSingleFilter());
 				this.IsSet = false;
 				return;
 			}
 
 			foreach (var filter in singleFilters)
-				this.filters.Add(filter);
+				this._filters.Add(filter);
 
 			var groupings = (from x in singleFilters where x.IsGrouped select x).GroupBy(x => x.GroupId);
 			foreach (var grouping in groupings)
@@ -90,10 +133,10 @@ namespace Snoop.DebugListenerTab
 
 		internal void SetIsSet()
 		{
-			if (filters == null)
+			if (_filters == null)
 				this.IsSet = false;
 
-			if (filters.Count == 1 && filters[0] is SnoopSingleFilter && string.IsNullOrEmpty(((SnoopSingleFilter)filters[0]).Text))
+			if (_filters.Count == 1 && _filters[0] is SnoopSingleFilter && string.IsNullOrEmpty(((SnoopSingleFilter)_filters[0]).Text))
 				this.IsSet = false;
 			else
 				this.IsSet = true;
@@ -102,8 +145,8 @@ namespace Snoop.DebugListenerTab
 		public void ClearFilters()
 		{
 			this.multipleFilters.Clear();
-			this.filters.Clear();
-			this.filters.Add(new SnoopSingleFilter());
+			this._filters.Clear();
+			this._filters.Add(new SnoopSingleFilter());
 			this.IsSet = false;
 		}
 
@@ -159,13 +202,13 @@ namespace Snoop.DebugListenerTab
 
 		public void AddFilter(SnoopFilter filter)
 		{
-			isDirty = true;
-			this.filters.Add(filter);
+			_isDirty = true;
+			this._filters.Add(filter);
 		}
 
 		public void RemoveFilter(SnoopFilter filter)
 		{
-			isDirty = true;
+			_isDirty = true;
 			var singleFilter = filter as SnoopSingleFilter;
 			if (singleFilter != null)
 			{
@@ -183,7 +226,7 @@ namespace Snoop.DebugListenerTab
 						index++;
 				}
 			}
-			this.filters.Remove(filter);
+			this._filters.Remove(filter);
 		}
 
 		public void ClearFilterGroups()
@@ -193,53 +236,6 @@ namespace Snoop.DebugListenerTab
 				filterGroup.ClearFilters();
 			}
 			this.multipleFilters.Clear();
-		}
-
-		private bool _isSet;
-		private string _filterStatus;
-		public bool IsSet
-		{
-			get
-			{
-				return _isSet;
-			}
-			set
-			{
-				_isSet = value;
-				RaisePropertyChanged("IsSet");
-				FilterStatus = _isSet ? "Filter is ON" : "Filter is OFF";
-			}
-		}
-
-		public string FilterStatus
-		{
-			get
-			{
-				return _filterStatus;
-			}
-			set
-			{
-				_filterStatus = value;
-				RaisePropertyChanged("FilterStatus");
-			}
-		}
-
-		private ObservableCollection<SnoopFilter> filters = new ObservableCollection<SnoopFilter>();
-		public IEnumerable<SnoopFilter> Filters
-		{
-			get
-			{
-				return filters;
-			}
-		}
-
-		public event PropertyChangedEventHandler PropertyChanged;
-
-		protected void RaisePropertyChanged(string propertyName)
-		{
-			var handler = this.PropertyChanged;
-			if (handler != null)
-				handler(this, new PropertyChangedEventArgs(propertyName));
 		}
 	}
 }

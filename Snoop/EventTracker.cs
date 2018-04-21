@@ -7,15 +7,11 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.Windows;
-using System.Windows.Data;
-using System.Windows.Input;
 
 namespace Snoop
 {
 	public delegate void EventTrackerHandler(TrackedEvent newEvent);
-
 
 	/// <summary>
 	/// Random class that tries to determine what element handled a specific event.
@@ -24,151 +20,164 @@ namespace Snoop
 	/// </summary>
 	public class EventTracker : INotifyPropertyChanged, IComparable
 	{
-		public EventTracker(Type targetType, RoutedEvent routedEvent)
+	    #region INotifyPropertyChanged Members
+
+	    public event PropertyChangedEventHandler PropertyChanged;
+
+	    protected void OnPropertyChanged(string propertyName)
+	    {
+	        Debug.Assert(this.GetType().GetProperty(propertyName) != null);
+	        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+	    }
+
+	    #endregion
+
+        public event EventTrackerHandler EventHandled;
+
+	    private TrackedEvent _currentEvent = null;
+	    private bool _everEnabled;
+	    private readonly Type _targetType;
+
+        private bool _isEnabled;
+
+	    public bool IsEnabled
+	    {
+	        get { return this._isEnabled; }
+	        set
+	        {
+	            if (this._isEnabled != value)
+	            {
+	                this._isEnabled = value;
+	                if (this._isEnabled && !this._everEnabled)
+	                {
+	                    this._everEnabled = true;
+	                    EventManager.RegisterClassHandler(this._targetType, _routedEvent, new RoutedEventHandler(this.HandleEvent), true);
+	                }
+	                this.OnPropertyChanged("IsEnabled");
+	            }
+	        }
+	    }
+
+        private readonly RoutedEvent _routedEvent;
+
+	    public RoutedEvent RoutedEvent
+	    {
+	        get { return this._routedEvent; }
+	    }
+
+	    public string Category
+	    {
+	        get { return this._routedEvent.OwnerType.Name; }
+	    }
+
+	    public string Name
+	    {
+	        get { return this._routedEvent.Name; }
+	    }
+
+        public EventTracker(Type targetType, RoutedEvent routedEvent)
 		{
-			this.targetType = targetType;
-			this.routedEvent = routedEvent;
+			this._targetType = targetType;
+			this._routedEvent = routedEvent;
 		}
-
-
-		public event EventTrackerHandler EventHandled;
-
-
-		public bool IsEnabled
-		{
-			get { return this.isEnabled; }
-			set
-			{
-				if (this.isEnabled != value)
-				{
-					this.isEnabled = value;
-					if (this.isEnabled && !this.everEnabled)
-					{
-						this.everEnabled = true;
-						EventManager.RegisterClassHandler(this.targetType, routedEvent, new RoutedEventHandler(this.HandleEvent), true);
-					}
-					this.OnPropertyChanged("IsEnabled");
-				}
-			}
-		}
-		private bool isEnabled;
-
-		public RoutedEvent RoutedEvent
-		{
-			get { return this.routedEvent; }
-		}
-		private RoutedEvent routedEvent;
-
-		public string Category
-		{
-			get { return this.routedEvent.OwnerType.Name; }
-		}
-
-		public string Name
-		{
-			get { return this.routedEvent.Name; }
-		}
-
 
 		private void HandleEvent(object sender, RoutedEventArgs e) 
 		{
 			// Try to figure out what element handled the event. Not precise.
-			if (this.isEnabled) 
+			if (this._isEnabled) 
 			{
 				EventEntry entry = new EventEntry(sender, e.Handled);
-				if (this.currentEvent != null && this.currentEvent.EventArgs == e) 
+				if (this._currentEvent != null && this._currentEvent.EventArgs == e) 
 				{
-					this.currentEvent.AddEventEntry(entry);
+					this._currentEvent.AddEventEntry(entry);
 				}
 				else 
 				{
-					this.currentEvent = new TrackedEvent(e, entry);
-					this.EventHandled(this.currentEvent);
+					this._currentEvent = new TrackedEvent(e, entry);
+					this.EventHandled(this._currentEvent);
 				}
 			}
-		}
+	    }
 
+	    #region IComparable Members
 
+	    public int CompareTo(object obj)
+	    {
+	        EventTracker otherTracker = obj as EventTracker;
+	        if (otherTracker == null)
+	            return 1;
 
-		private TrackedEvent currentEvent = null;
-		private bool everEnabled;
-		private Type targetType;
+	        if (this.Category == otherTracker.Category)
+	            return this.RoutedEvent.Name.CompareTo(otherTracker.RoutedEvent.Name);
+	        return this.Category.CompareTo(otherTracker.Category);
+	    }
 
+	    #endregion
+    }
 
-		#region IComparable Members
-		public int CompareTo(object obj)
-		{
-			EventTracker otherTracker = obj as EventTracker;
-			if (otherTracker == null)
-				return 1;
-
-			if (this.Category == otherTracker.Category)
-				return this.RoutedEvent.Name.CompareTo(otherTracker.RoutedEvent.Name);
-			return this.Category.CompareTo(otherTracker.Category);
-		}
-		#endregion
-
-		#region INotifyPropertyChanged Members
-		public event PropertyChangedEventHandler PropertyChanged;
-		protected void OnPropertyChanged(string propertyName)
-		{
-			Debug.Assert(this.GetType().GetProperty(propertyName) != null);
-			if (this.PropertyChanged != null)
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-		}
-		#endregion
-	}
-
-
-	[DebuggerDisplay("TrackedEvent: {EventArgs}")]
+    [DebuggerDisplay("TrackedEvent: {EventArgs}")]
 	public class TrackedEvent : INotifyPropertyChanged
-	{
-		public TrackedEvent(RoutedEventArgs routedEventArgs, EventEntry originator)
+    {
+        #region INotifyPropertyChanged Members
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            Debug.Assert(this.GetType().GetProperty(propertyName) != null);
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion
+
+        private readonly RoutedEventArgs _routedEventArgs;
+
+        public RoutedEventArgs EventArgs
+        {
+            get { return this._routedEventArgs; }
+        }
+
+        public EventEntry Originator
+        {
+            get { return this.Stack[0]; }
+        }
+
+        private bool _handled = false;
+
+        public bool Handled
+        {
+            get { return this._handled; }
+            set
+            {
+                this._handled = value;
+                this.OnPropertyChanged("Handled");
+            }
+        }
+
+        private object _handledBy = null;
+
+        public object HandledBy
+        {
+            get { return this._handledBy; }
+            set
+            {
+                this._handledBy = value;
+                this.OnPropertyChanged("HandledBy");
+            }
+        }
+
+        private readonly ObservableCollection<EventEntry> _stack = new ObservableCollection<EventEntry>();
+
+        public ObservableCollection<EventEntry> Stack
+        {
+            get { return this._stack; }
+        }
+
+        public TrackedEvent(RoutedEventArgs routedEventArgs, EventEntry originator)
 		{
-			this.routedEventArgs = routedEventArgs;
+			this._routedEventArgs = routedEventArgs;
 			this.AddEventEntry(originator);
 		}
-
-
-		public RoutedEventArgs EventArgs
-		{
-			get { return this.routedEventArgs; }
-		}
-		private RoutedEventArgs routedEventArgs;
-
-		public EventEntry Originator
-		{
-			get { return this.Stack[0]; }
-		}
-
-		public bool Handled
-		{
-			get { return this.handled; }
-			set
-			{
-				this.handled = value;
-				this.OnPropertyChanged("Handled");
-			}
-		}
-		private bool handled = false;
-
-		public object HandledBy
-		{
-			get { return this.handledBy; }
-			set
-			{
-				this.handledBy = value;
-				this.OnPropertyChanged("HandledBy");
-			}
-		}
-		private object handledBy = null;
-
-		public ObservableCollection<EventEntry> Stack
-		{
-			get { return this.stack; }
-		}
-		private ObservableCollection<EventEntry> stack = new ObservableCollection<EventEntry>();
-
 
 		public void AddEventEntry(EventEntry eventEntry)
 		{
@@ -179,38 +188,28 @@ namespace Snoop
 				this.HandledBy = eventEntry.Handler;
 			}
 		}
+    }
 
+    public class EventEntry
+    {
+        private readonly bool _handled;
 
-		#region INotifyPropertyChanged Members
-		public event PropertyChangedEventHandler PropertyChanged;
-		protected void OnPropertyChanged(string propertyName)
+        public bool Handled
+        {
+            get { return this._handled; }
+        }
+
+        private readonly object _handler;
+
+        public object Handler
+        {
+            get { return this._handler; }
+        }
+
+        public EventEntry(object handler, bool handled)
 		{
-			Debug.Assert(this.GetType().GetProperty(propertyName) != null);
-			if (this.PropertyChanged != null)
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+			this._handler = handler;
+			this._handled = handled;
 		}
-		#endregion
-	}
-
-
-	public class EventEntry
-	{
-		public EventEntry(object handler, bool handled)
-		{
-			this.handler = handler;
-			this.handled = handled;
-		}
-
-		public bool Handled
-		{
-			get { return this.handled; }
-		}
-		private bool handled;
-
-		public object Handler
-		{
-			get { return this.handler; }
-		}
-		private object handler;
 	}
 }

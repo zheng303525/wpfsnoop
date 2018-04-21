@@ -13,146 +13,169 @@ using System.ComponentModel;
 
 namespace Snoop
 {
-	public partial class EditUserFilters : Window, INotifyPropertyChanged
-	{
-		public EditUserFilters()
-		{
-			InitializeComponent();
-			DataContext = this;
-		}
+    /// <summary>
+    /// 用于设置用户筛选
+    /// </summary>
+    public partial class EditUserFilters : Window, INotifyPropertyChanged
+    {
+        #region INotifyPropertyChanged Members
 
+        public event PropertyChangedEventHandler PropertyChanged;
 
-		public IEnumerable<PropertyFilterSet> UserFilters
-		{
-			[DebuggerStepThrough]
-			get { return _userFilters; }
-			set
-			{
-				if (value != _userFilters)
-				{
-					_userFilters = value;
-					NotifyPropertyChanged("UserFilters");
-					ItemsSource = new ObservableCollection<PropertyFilterSet>(UserFilters);
-				}
-			}
-		}
-		private IEnumerable<PropertyFilterSet> _userFilters;
+        protected void OnPropertyChanged(string propertyName)
+        {
+            Debug.Assert(this.GetType().GetProperty(propertyName) != null);
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
-		public ObservableCollection<PropertyFilterSet> ItemsSource
-		{
-			[DebuggerStepThrough]
-			get { return _itemsSource; }
-			private set
-			{
-				if (value != _itemsSource)
-				{
-					_itemsSource = value;
-					NotifyPropertyChanged("ItemsSource");
-				}
-			}
-		}
-		private ObservableCollection<PropertyFilterSet> _itemsSource;
+        #endregion
 
+        public EditUserFilters()
+        {
+            InitializeComponent();
+            DataContext = this;
+        }
 
-		private void OkHandler(object sender, RoutedEventArgs e)
-		{
-			DialogResult = true;
-			Close();
-		}
-		private void CancelHandler(object sender, RoutedEventArgs e)
-		{
-			DialogResult = false;
-			Close();
-		}
+        private IEnumerable<PropertyFilterSet> _userFilters;
 
-		private void AddHandler(object sender, RoutedEventArgs e)
-		{
-			var newSet =
-				new PropertyFilterSet()
-				{
-					DisplayName = "New Filter",
-					IsDefault = false,
-					IsEditCommand = false,
-					Properties = new String[] { "prop1,prop2" },
-				};
-			ItemsSource.Add(newSet);
+        /// <summary>
+        /// 用户筛选列表
+        /// </summary>
+        public IEnumerable<PropertyFilterSet> UserFilters
+        {
+            [DebuggerStepThrough]
+            get { return _userFilters; }
+            set
+            {
+                if (value != _userFilters)
+                {
+                    _userFilters = value;
+                    OnPropertyChanged(nameof(UserFilters));
+                    ItemsSource = new ObservableCollection<PropertyFilterSet>(UserFilters);
+                }
+            }
+        }
 
-			// select this new item
-			int index = ItemsSource.IndexOf(newSet);
-			if (index >= 0)
-			{
-				filterSetList.SelectedIndex = index;
-			}
-		}
-		private void DeleteHandler(object sender, RoutedEventArgs e)
-		{
-			var selected = filterSetList.SelectedItem as PropertyFilterSet;
-			if (selected != null)
-			{
-				ItemsSource.Remove(selected);
-			}
-		}
+        private ObservableCollection<PropertyFilterSet> _itemsSource;
 
-		private void UpHandler(object sender, RoutedEventArgs e)
-		{
-			int index = filterSetList.SelectedIndex;
-			if (index <= 0)
-				return;
+        public ObservableCollection<PropertyFilterSet> ItemsSource
+        {
+            [DebuggerStepThrough]
+            get { return _itemsSource; }
+            private set
+            {
+                if (value != _itemsSource)
+                {
+                    _itemsSource = value;
+                    OnPropertyChanged(nameof(ItemsSource));
+                }
+            }
+        }
 
-			var item = ItemsSource[index];
-			ItemsSource.RemoveAt(index);
-			ItemsSource.Insert(index - 1, item);
+        private void OkHandler(object sender, RoutedEventArgs e)
+        {
+            DialogResult = true;
+            Close();
+        }
 
-			// select the moved item
-			filterSetList.SelectedIndex = index - 1;
+        private void CancelHandler(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+            Close();
+        }
 
-		}
-		private void DownHandler(object sender, RoutedEventArgs e)
-		{
-			int index = filterSetList.SelectedIndex;
-			if (index >= ItemsSource.Count - 1)
-				return;
+        private void AddHandler(object sender, RoutedEventArgs e)
+        {
+            var newSet = new PropertyFilterSet()
+            {
+                DisplayName = "New Filter",
+                IsDefault = false,
+                IsEditCommand = false,
+                Properties = new String[] { "prop1,prop2" },
+            };
+            ItemsSource.Add(newSet);
 
-			var item = ItemsSource[index];
-			ItemsSource.RemoveAt(index);
-			ItemsSource.Insert(index + 1, item);
+            // select this new item
+            int index = ItemsSource.IndexOf(newSet);
+            if (index >= 0)
+            {
+                filterSetList.SelectedIndex = index;
+            }
+        }
 
-			// select the moved item
-			filterSetList.SelectedIndex = index + 1;
-		}
+        private void DeleteHandler(object sender, RoutedEventArgs e)
+        {
+            var selected = filterSetList.SelectedItem as PropertyFilterSet;
+            if (selected != null)
+            {
+                ItemsSource.Remove(selected);
+            }
+        }
 
-		private void SelectionChangedHandler(object sender, SelectionChangedEventArgs e)
-		{
-			SetButtonStates();
-		}
+        /// <summary>
+        /// 上移
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void UpHandler(object sender, RoutedEventArgs e)
+        {
+            int index = filterSetList.SelectedIndex;
+            if (index <= 0)
+                return;
 
+            var item = ItemsSource[index];
+            ItemsSource.RemoveAt(index);
+            ItemsSource.Insert(index - 1, item);
 
-		private void SetButtonStates()
-		{
-			MoveUp.IsEnabled = false;
-			MoveDown.IsEnabled = false;
-			DeleteItem.IsEnabled = false;
+            // select the moved item
+            filterSetList.SelectedIndex = index - 1;
+        }
 
-			int index = filterSetList.SelectedIndex;
-			if (index >= 0)
-			{
-				MoveDown.IsEnabled = true;
-				DeleteItem.IsEnabled = true;
-			}
+        /// <summary>
+        /// 下移
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void DownHandler(object sender, RoutedEventArgs e)
+        {
+            int index = filterSetList.SelectedIndex;
+            if (index >= ItemsSource.Count - 1)
+                return;
 
-			if (index > 0)
-				MoveUp.IsEnabled = true;
+            var item = ItemsSource[index];
+            ItemsSource.RemoveAt(index);
+            ItemsSource.Insert(index + 1, item);
 
-			if (index == filterSetList.Items.Count - 1)
-				MoveDown.IsEnabled = false;
-		}
+            // select the moved item
+            filterSetList.SelectedIndex = index + 1;
+        }
 
+        private void SelectionChangedHandler(object sender, SelectionChangedEventArgs e)
+        {
+            SetButtonStates();
+        }
 
-		public event PropertyChangedEventHandler PropertyChanged;
-		protected void NotifyPropertyChanged(string propertyName)
-		{
-			if (PropertyChanged != null)
-				PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-		}
-	}
+        /// <summary>
+        /// 设置按钮状态
+        /// </summary>
+        private void SetButtonStates()
+        {
+            MoveUp.IsEnabled = false;
+            MoveDown.IsEnabled = false;
+            DeleteItem.IsEnabled = false;
+
+            int index = filterSetList.SelectedIndex;
+            if (index >= 0)
+            {
+                MoveDown.IsEnabled = true;
+                DeleteItem.IsEnabled = true;
+            }
+
+            if (index > 0)
+                MoveUp.IsEnabled = true;
+
+            if (index == filterSetList.Items.Count - 1)
+                MoveDown.IsEnabled = false;
+        }
+    }
 }

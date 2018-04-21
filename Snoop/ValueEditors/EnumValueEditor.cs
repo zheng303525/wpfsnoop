@@ -9,29 +9,34 @@ using System.Windows.Data;
 
 namespace Snoop
 {
+    /// <summary>
+    /// Ã¶¾ÙÀàÐÍ±à¼­Æ÷
+    /// </summary>
 	public partial class EnumValueEditor : ValueEditor
-	{
-		public EnumValueEditor()
+    {
+        private bool _isValid = false;
+        private readonly ListCollectionView _valuesView;
+
+        public EnumValueEditor()
 		{
-			this.valuesView = (ListCollectionView)CollectionViewSource.GetDefaultView(this.values);
-			this.valuesView.CurrentChanged += this.HandleSelectionChanged;
+			this._valuesView = (ListCollectionView)CollectionViewSource.GetDefaultView(this._values);
+			this._valuesView.CurrentChanged += this.HandleSelectionChanged;
 		}
 
+	    private readonly List<object> _values = new List<object>();
 
-		public IList<object> Values
+        public IList<object> Values
 		{
-			get { return this.values; }
+			get { return this._values; }
 		}
-		private List<object> values = new List<object>();
-
 
 		protected override void OnTypeChanged()
 		{
 			base.OnTypeChanged();
 
-			this.isValid = false;
+			this._isValid = false;
 
-			this.values.Clear();
+			this._values.Clear();
 
 			Type propertyType = this.PropertyType;
 			if (propertyType != null)
@@ -39,21 +44,21 @@ namespace Snoop
 				Array values = Enum.GetValues(propertyType);
 				foreach(object value in values)
 				{
-					this.values.Add(value);
+					this._values.Add(value);
 
 					if (this.Value != null && this.Value.Equals(value))
-						this.valuesView.MoveCurrentTo(value);
+						this._valuesView.MoveCurrentTo(value);
 				}
 			}
 
-			this.isValid = true;
+			this._isValid = true;
 		}
 
 		protected override void OnValueChanged(object newValue)
 		{
 			base.OnValueChanged(newValue);
 
-			this.valuesView.MoveCurrentTo(newValue);
+			this._valuesView.MoveCurrentTo(newValue);
 
 			// sneaky trick here.  only if both are non-null is this a change
 			// caused by the user.  If so, set the bool to track it.
@@ -63,18 +68,13 @@ namespace Snoop
 			}
 		}
 
-
 		private void HandleSelectionChanged(object sender, EventArgs e)
 		{
-			if (this.isValid && this.Value != null)
+			if (this._isValid && this.Value != null)
 			{
-				if (!this.Value.Equals(this.valuesView.CurrentItem))
-					this.Value = this.valuesView.CurrentItem;
+				if (!this.Value.Equals(this._valuesView.CurrentItem))
+					this.Value = this._valuesView.CurrentItem;
 			}
 		}
-
-
-		private bool isValid = false;
-		private ListCollectionView valuesView;
 	}
 }

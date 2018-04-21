@@ -4,21 +4,12 @@
 // All other rights reserved.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Globalization;
 using System.Windows;
-using System.Windows.Data;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Controls;
-using Snoop.Infrastructure;
 using System.Reflection;
-using System.Linq;
-
 using Snoop.Converters;
 
 namespace Snoop.MethodsTab
@@ -96,8 +87,6 @@ namespace Snoop.MethodsTab
             }
         }
 
-
-
         public bool IsSelected
         {
             get { return (bool)GetValue(IsSelectedProperty); }
@@ -107,9 +96,7 @@ namespace Snoop.MethodsTab
         // Using a DependencyProperty as the backing store for IsSelected.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty IsSelectedProperty =
             DependencyProperty.Register("IsSelected", typeof(bool), typeof(MethodsControl), new UIPropertyMetadata(false));
-
-
-
+        
         private static void TargetChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
             if (e.NewValue != e.OldValue)
@@ -154,6 +141,7 @@ namespace Snoop.MethodsTab
         }
 
         private SnoopMethodInformation _previousMethodInformation = null;
+
         private void comboBoxMethodChanged(object sender, EventArgs e)
         {
             var selectedMethod = this.comboBoxMethods.SelectedValue as SnoopMethodInformation;
@@ -325,7 +313,5 @@ namespace Snoop.MethodsTab
                 this.Target = paramCreator.SelectedTarget;
             }
         }
-
     }
-       
 }

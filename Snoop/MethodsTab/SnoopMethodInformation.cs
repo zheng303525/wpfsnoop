@@ -5,21 +5,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection;
 
 namespace Snoop.MethodsTab
 {
     public class SnoopMethodInformation : IComparable, IEquatable<SnoopMethodInformation>
     {
-        private MethodInfo _methodInfo;
-
         public string MethodName
         {
             get;
             set;
         }
+
+        private readonly MethodInfo _methodInfo;
 
         public MethodInfo MethodInfo
         {
@@ -33,15 +31,6 @@ namespace Snoop.MethodsTab
         {
             _methodInfo = methodInfo;
         }
-
-        #region IComparable Members
-
-        public int CompareTo(object obj)
-        {
-            return this.MethodName.CompareTo(((SnoopMethodInformation)obj).MethodName);
-        }
-
-        #endregion
 
         public override string ToString()
         {
@@ -66,6 +55,15 @@ namespace Snoop.MethodsTab
 
             return parametersToReturn;
         }
+
+        #region IComparable Members
+
+        public int CompareTo(object obj)
+        {
+            return this.MethodName.CompareTo(((SnoopMethodInformation)obj).MethodName);
+        }
+
+        #endregion
 
         #region IEquatable<SnoopMethodInformation> Members
 

@@ -3,53 +3,50 @@
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows.Documents;
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Controls;
 
 namespace Snoop
 {
-	/// <summary>
-	/// Simple helper class to allow any UIElements to be used as an Adorner.
-	/// </summary>
-	public class AdornerContainer : Adorner
-	{
-		public AdornerContainer(UIElement adornedElement): base(adornedElement)
-		{
-		}
+    /// <summary>
+    /// Simple helper class to allow any UIElements to be used as an Adorner.
+    /// </summary>
+    public class AdornerContainer : Adorner
+    {
+        private UIElement _child;
 
-		protected override int VisualChildrenCount
-		{
-			get { return this.child == null ? 0 : 1; }
-		}
+        public UIElement Child
+        {
+            get { return this._child; }
+            set
+            {
+                this.AddVisualChild(value);
+                this._child = value;
+            }
+        }
 
-		protected override Visual GetVisualChild(int index)
-		{
-			if (index == 0 && this.child != null)
-				return this.child;
-			return base.GetVisualChild(index);
-		}
+        public AdornerContainer(UIElement adornedElement) : base(adornedElement)
+        {
+        }
 
-		protected override Size ArrangeOverride(Size finalSize)
-		{
-			if (this.child != null)
-				this.child.Arrange(new Rect(finalSize));
-			return finalSize;
-		}
+        protected override int VisualChildrenCount
+        {
+            get { return this._child == null ? 0 : 1; }
+        }
 
-		public UIElement Child
-		{
-			get { return this.child; }
-			set
-			{
-				this.AddVisualChild(value);
-				this.child = value;
-			}
-		}
-		private UIElement child;
-	}
+        protected override Visual GetVisualChild(int index)
+        {
+            if (index == 0 && this._child != null)
+                return this._child;
+            return base.GetVisualChild(index);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (this._child != null)
+                this._child.Arrange(new Rect(finalSize));
+            return finalSize;
+        }
+    }
 }

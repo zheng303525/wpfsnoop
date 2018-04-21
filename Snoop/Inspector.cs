@@ -7,20 +7,23 @@ using System.Windows.Controls;
 
 namespace Snoop
 {
+    /// <summary>
+    /// <see cref="PropertyGrid2"/>»ùÀà
+    /// </summary>
 	public class Inspector : Grid
-	{
-		public PropertyFilter Filter
-		{
-			get { return this.filter; }
-			set
-			{
-				this.filter = value;
-				this.OnFilterChanged();
-			}
-		}
-		private PropertyFilter filter;
+    {
+        private PropertyFilter _filter;
 
+        public PropertyFilter Filter
+        {
+            get { return this._filter; }
+            set
+            {
+                this._filter = value;
+                this.OnFilterChanged();
+            }
+        }
 
-		protected virtual void OnFilterChanged() {}
-	}
+        protected virtual void OnFilterChanged() { }
+    }
 }

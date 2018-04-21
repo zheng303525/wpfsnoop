@@ -10,33 +10,33 @@ using System.Windows.Data;
 
 namespace Snoop
 {
+    /// <summary>
+    /// Ä¬ÈÏ±ê×¼±à¼­Æ÷
+    /// </summary>
 	public partial class StandardValueEditor: ValueEditor
-	{
-		public StandardValueEditor()
+    {
+        private bool _isUpdatingValue = false;
+
+        public StandardValueEditor()
 		{
 		}
-
 
 		public string StringValue
 		{
 			get { return (string)this.GetValue(StandardValueEditor.StringValueProperty); }
 			set { this.SetValue(StandardValueEditor.StringValueProperty, value); }
 		}
-		public static readonly DependencyProperty StringValueProperty =
-			DependencyProperty.Register
-			(
-				"StringValue",
-				typeof(string),
-				typeof(StandardValueEditor),
-				new PropertyMetadata(StandardValueEditor.HandleStringPropertyChanged)
-			);
+
+		public static readonly DependencyProperty StringValueProperty =DependencyProperty.Register("StringValue",typeof(string),typeof(StandardValueEditor),new PropertyMetadata(StandardValueEditor.HandleStringPropertyChanged));
+
 		private static void HandleStringPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
 		{
 			((StandardValueEditor)sender).OnStringPropertyChanged((string)e.NewValue);
 		}
+
 		protected virtual void OnStringPropertyChanged(string newValue)
 		{
-			if (this.isUpdatingValue)
+			if (this._isUpdatingValue)
 				return;
 
 			if (PropertyInfo != null)
@@ -78,10 +78,9 @@ namespace Snoop
 			}
 		}
 
-
 		protected override void OnValueChanged(object newValue)
 		{
-			this.isUpdatingValue = true;
+			this._isUpdatingValue = true;
 
 			object value = this.Value;
 			if (value != null)
@@ -89,14 +88,11 @@ namespace Snoop
 			else
 				this.StringValue = string.Empty;
 
-			this.isUpdatingValue = false;
+			this._isUpdatingValue = false;
 
 			BindingExpression binding = BindingOperations.GetBindingExpression(this, StandardValueEditor.StringValueProperty);
 			if (binding != null)
 				binding.UpdateSource();
 		}
-
-
-		private bool isUpdatingValue = false;
 	}
 }
